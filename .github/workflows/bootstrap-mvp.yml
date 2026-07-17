@@ -47,12 +47,26 @@ jobs:
           rsync -a --exclude='.github/workflows/ci.yml' /tmp/mssp-core-mvp/ ./
           rm -rf .bootstrap
 
-      - name: Commit materialized MVP
+      - name: Commit and attempt branch update
+        id: branch_update
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Materialize MSSP Core MVP source tree'
-          git push origin HEAD:agent/initial-mssp-core-mvp
+          git status --short > /tmp/push-diagnostics.txt
+          git commit -m 'Materialize MSSP Core MVP source tree' >> /tmp/push-diagnostics.txt 2>&1
+          git push origin HEAD:agent/initial-mssp-core-mvp >> /tmp/push-diagnostics.txt 2>&1
+
+      - name: Upload push diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mssp-bootstrap-push-diagnostics
+          path: /tmp/push-diagnostics.txt
+
+      - name: Report failed branch update
+        if: steps.branch_update.outcome == 'failure'
+        run: exit 1
