@@ -1,0 +1,64 @@
+name: Bootstrap MSSP Core MVP
+
+on:
+  push:
+    branches:
+      - agent/initial-mssp-core-mvp
+    paths:
+      - '.bootstrap/**'
+      - '.github/workflows/bootstrap-mvp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out bootstrap branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reassemble and extract source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/mssp-core-mvp.tar.gz.b64.part* | base64 --decode > /tmp/mssp-core-mvp.tar.gz
+          mkdir -p /tmp/mssp-core-mvp
+          tar -xzf /tmp/mssp-core-mvp.tar.gz -C /tmp/mssp-core-mvp
+          rsync -a /tmp/mssp-core-mvp/ ./
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-mvp.yml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate MVP
+        run: |
+          npm run typecheck
+          npm test
+          npm run build
+          npm run check:example
+
+      - name: Commit materialized MVP
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Initial MSSP Core MVP'
+          git push origin HEAD:agent/initial-mssp-core-mvp
