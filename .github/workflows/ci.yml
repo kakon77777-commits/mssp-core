@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write
+
 concurrency:
   group: mssp-core-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -12,8 +15,38 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Normalize lockfile to the public npm registry
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('package-lock.json')
+          text = path.read_text(encoding='utf-8')
+          private = 'https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/'
+          public = 'https://registry.npmjs.org/'
+          count = text.count(private)
+          path.write_text(text.replace(private, public), encoding='utf-8')
+          print(f'normalized {count} registry URLs')
+          if private in path.read_text(encoding='utf-8'):
+              raise SystemExit('private npm registry URL remains in lockfile')
+          PY
+      - name: Persist portable lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Use public npm registry in package lock'
+            git push origin HEAD:${TARGET_BRANCH}
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
