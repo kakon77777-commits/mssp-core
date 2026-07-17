@@ -1,0 +1,26 @@
+schemaVersion: "0.1"
+id: core.echo
+name: Core Echo
+version: "0.1.0"
+layer: SMS
+purpose: "Provide the stable capability required by every execution path."
+entry: index.js
+inputs: [text]
+outputs: [text]
+requires:
+  modules: []
+  tools: []
+  data: []
+permissions:
+  may: [read-input]
+  mayNot: [network, filesystem-write]
+riskLevel: L0
+failureModes: [invalid-input]
+validation: ["output must be a string"]
+tests: ["returns the provided text"]
+compatibility:
+  mssp: ">=0.1 <0.2"
+changeImpact:
+  affects: [plugin.uppercase, router.default, runtime.default]
+  affectedBy: []
+maintainer: EVEMISSLAB

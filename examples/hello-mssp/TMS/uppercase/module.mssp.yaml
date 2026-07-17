@@ -1,0 +1,29 @@
+schemaVersion: "0.1"
+id: plugin.uppercase
+name: Uppercase Plugin
+version: "0.1.0"
+layer: TMS
+purpose: "Optionally transform core output to uppercase."
+entry: index.js
+activateWhen: ["request.transform == uppercase"]
+inputs: [text]
+outputs: [text]
+requires:
+  modules: [core.echo]
+  tools: []
+  data: []
+permissions:
+  may: [read-input]
+  mayNot: [network, filesystem-write]
+riskLevel: L0
+failureModes: [invalid-input]
+validation: ["output must equal input.toUpperCase()"]
+tests: ["uppercase transformation", "safe rejection of non-string input"]
+compatibility:
+  mssp: ">=0.1 <0.2"
+  modules:
+    core.echo: ">=0.1 <0.2"
+changeImpact:
+  affects: []
+  affectedBy: [core.echo, router.default]
+maintainer: EVEMISSLAB

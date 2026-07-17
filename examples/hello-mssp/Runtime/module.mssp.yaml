@@ -1,0 +1,26 @@
+schemaVersion: "0.1"
+id: runtime.default
+name: Default Runtime
+version: "0.1.0"
+layer: RUNTIME
+purpose: "Execute stable core capabilities and the optional module selected by Router."
+entry: index.js
+inputs: [request, selected-module-id]
+outputs: [result, events]
+requires:
+  modules: [core.echo, router.default]
+  tools: []
+  data: []
+permissions:
+  may: [execute-declared-modules]
+  mayNot: [execute-undeclared-modules]
+riskLevel: L1
+failureModes: [module-load-failure, validation-failure]
+validation: ["all executed modules are declared in MSSP manifests"]
+tests: ["core-only execution", "core plus selected TMS execution"]
+compatibility:
+  mssp: ">=0.1 <0.2"
+changeImpact:
+  affects: []
+  affectedBy: [core.echo, router.default]
+maintainer: EVEMISSLAB

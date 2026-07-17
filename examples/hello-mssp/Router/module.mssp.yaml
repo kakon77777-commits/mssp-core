@@ -1,0 +1,26 @@
+schemaVersion: "0.1"
+id: router.default
+name: Default Router
+version: "0.1.0"
+layer: ROUTER
+purpose: "Select a TMS by declared activation conditions without importing it as a core dependency."
+entry: index.js
+inputs: [request, module-manifests]
+outputs: [selected-module-id]
+requires:
+  modules: [core.echo]
+  tools: []
+  data: []
+permissions:
+  may: [read-module-manifests]
+  mayNot: [execute-unapproved-module]
+riskLevel: L1
+failureModes: [no-route, ambiguous-route]
+validation: ["selected module exists and activation condition matches"]
+tests: ["selects plugin.uppercase for uppercase requests"]
+compatibility:
+  mssp: ">=0.1 <0.2"
+changeImpact:
+  affects: [runtime.default]
+  affectedBy: [core.echo, plugin.uppercase]
+maintainer: EVEMISSLAB

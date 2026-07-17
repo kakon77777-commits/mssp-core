@@ -1,0 +1,11 @@
+flowchart LR
+  core_echo["Core Echo<br/>SMS"]
+  plugin_uppercase["Uppercase Plugin<br/>TMS"]
+  diagnostics_basic["Basic Diagnostics<br/>DMS"]
+  router_default["Default Router<br/>ROUTER"]
+  runtime_default["Default Runtime<br/>RUNTIME"]
+  plugin_uppercase -->|requires| core_echo
+  diagnostics_basic -->|requires| core_echo
+  router_default -->|requires| core_echo
+  runtime_default -->|requires| core_echo
+  runtime_default -->|requires| router_default

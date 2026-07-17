@@ -1,0 +1,20 @@
+schemaVersion: "0.1"
+id: hello-mssp
+name: Hello MSSP
+version: "0.1.0"
+description: "A minimal executable architecture example."
+layers:
+  FMS: FMS
+  SCL: SCL
+  SMS: SMS
+  TMS: TMS
+  DMS: DMS
+  ROUTER: Router
+  RUNTIME: Runtime
+policies:
+  fmsExecutableFiles: deny
+  tmsDirectDependency: deny
+  smsDependsOnTms: deny
+  requireFmsReview: true
+metadata:
+  methodology: "Mother-Set and Subset Paradigm"
