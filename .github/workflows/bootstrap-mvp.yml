@@ -30,32 +30,23 @@ jobs:
           ref: agent/initial-mssp-core-mvp
           fetch-depth: 0
 
-      - name: Reassemble and extract source tree
+      - name: Verify and materialize source tree
         shell: bash
         run: |
           set -euo pipefail
           cat .bootstrap/mssp-core-mvp.tar.gz.b64.part* | base64 --decode > /tmp/mssp-core-mvp.tar.gz
+          echo '2e9b4cd97c43104e2449b690930169154c4c6ead2e938bc87878af919159551f  /tmp/mssp-core-mvp.tar.gz' | sha256sum --check
           mkdir -p /tmp/mssp-core-mvp
           tar -xzf /tmp/mssp-core-mvp.tar.gz -C /tmp/mssp-core-mvp
+          test "$(find /tmp/mssp-core-mvp -type f | wc -l)" -eq 51
+          test -f /tmp/mssp-core-mvp/package.json
+          test -f /tmp/mssp-core-mvp/package-lock.json
+          test -f /tmp/mssp-core-mvp/src/cli.ts
+          test -f /tmp/mssp-core-mvp/spec/MSSP-CORE-SPEC-v0.1.md
+          test -f /tmp/mssp-core-mvp/.github/workflows/ci.yml
           rsync -a /tmp/mssp-core-mvp/ ./
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-mvp.yml
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Validate MVP
-        run: |
-          npm run typecheck
-          npm test
-          npm run build
-          npm run check:example
 
       - name: Commit materialized MVP
         shell: bash
@@ -64,9 +55,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          if git diff --cached --quiet; then
-            echo 'No changes to commit.'
-            exit 0
-          fi
           git commit -m 'Initial MSSP Core MVP'
           git push origin HEAD:agent/initial-mssp-core-mvp
