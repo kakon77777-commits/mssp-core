@@ -7,6 +7,13 @@ on:
     paths:
       - '.bootstrap/**'
       - '.github/workflows/bootstrap-mvp.yml'
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
@@ -20,6 +27,7 @@ jobs:
       - name: Check out bootstrap branch
         uses: actions/checkout@v4
         with:
+          ref: agent/initial-mssp-core-mvp
           fetch-depth: 0
 
       - name: Reassemble and extract source tree
