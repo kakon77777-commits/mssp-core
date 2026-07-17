@@ -44,9 +44,8 @@ jobs:
           test -f /tmp/mssp-core-mvp/src/cli.ts
           test -f /tmp/mssp-core-mvp/spec/MSSP-CORE-SPEC-v0.1.md
           test -f /tmp/mssp-core-mvp/.github/workflows/ci.yml
-          rsync -a /tmp/mssp-core-mvp/ ./
+          rsync -a --exclude='.github/workflows/ci.yml' /tmp/mssp-core-mvp/ ./
           rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap-mvp.yml
 
       - name: Commit materialized MVP
         shell: bash
@@ -55,5 +54,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Initial MSSP Core MVP'
+          git commit -m 'Materialize MSSP Core MVP source tree'
           git push origin HEAD:agent/initial-mssp-core-mvp
