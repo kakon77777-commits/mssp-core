@@ -2,14 +2,14 @@
 
 Date: 2026-07-18
 
-## Environment
+## Local environment
 
 - Node.js: v22.16.0
 - npm: 10.9.2
 - TypeScript: 5.x
 - Test runner: Vitest 3.x
 
-## Completed checks
+## Completed local checks
 
 ```text
 npm run typecheck  PASS
@@ -21,6 +21,22 @@ node dist/cli.js island examples/hello-mssp PASS
 node dist/cli.js graph examples/hello-mssp  PASS
 npm pack --dry-run PASS
 ```
+
+## Completed GitHub Actions checks
+
+The draft pull request was validated on a clean GitHub-hosted Ubuntu runner with Node.js 22 and the public npm registry.
+
+```text
+npm ci --no-audit --no-fund PASS
+npm run typecheck             PASS
+npm test                      PASS — 4 test files, 8 tests
+npm run build                 PASS
+mssp lint reference project   PASS
+mssp island reference TMS     PASS
+mssp graph + artifact upload  PASS
+```
+
+The package lock contains public `registry.npmjs.org` URLs and no environment-internal package gateway URLs.
 
 ## Verified negative cases
 
@@ -36,4 +52,3 @@ npm pack --dry-run PASS
 - No visual web editor.
 - No AISMBI/MCL implementation.
 - No EML adapter implementation yet; only the dependency boundary and proposed commands are specified.
-- The GitHub repository itself was not created automatically because the available environment lacks GitHub CLI and the connected GitHub App exposes repository content operations but not repository creation.
