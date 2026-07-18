@@ -1,6 +1,7 @@
 export * from "./types.js";
 export * from "./diagnostics.js";
 export * from "./model.js";
+export * from "./scanner.js";
 export * from "./io.js";
 export * from "./validate.js";
 export * from "./graph.js";
