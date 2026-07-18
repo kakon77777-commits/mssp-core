@@ -30,6 +30,7 @@ jobs:
       - run: node dist/cli.js lint examples/hello-mssp --json > diagnostics.json
       - run: node dist/cli.js island examples/hello-mssp
       - run: node dist/cli.js island examples/hello-mssp --json > island-diagnostics.json
+      - run: node dist/cli.js model examples/hello-mssp --revision "${{ github.sha }}" --out intermediate-model.json
       - run: node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
       - uses: actions/upload-artifact@v4
         with:
@@ -38,3 +39,4 @@ jobs:
             architecture.mmd
             diagnostics.json
             island-diagnostics.json
+            intermediate-model.json
