@@ -13,7 +13,7 @@ Date: 2026-07-18
 
 ## Automated checks
 
-The implementation was validated from clean Draft PR merge-ref checkouts with complete Git history available to the impact analyzer.
+The implementation is validated from clean Draft PR merge-ref checkouts with complete Git history available to the impact analyzer.
 
 ```text
 npm ci --no-audit --no-fund                              PASS
@@ -34,7 +34,7 @@ mssp graph examples/hello-mssp                           PASS
 validation artifact upload                              PASS
 ```
 
-Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. Volatile workflow-run and artifact identifiers belong in the Draft PR description, not this versioned report.
+Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. The current GitHub Actions run and artifact are intentionally not duplicated in this versioned file; they remain attached to the current commit and Draft PR.
 
 ## Protocol and model conformance
 
