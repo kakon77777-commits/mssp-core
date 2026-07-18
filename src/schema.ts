@@ -71,6 +71,9 @@ export const validatePythonAdapterInputSchema: ValidateFunction = ajv.compile(
 export const validateRustAdapterInputSchema: ValidateFunction = ajv.compile(
   readSchema("rust-adapter-input.schema.json"),
 );
+export const validateGodotAdapterInputSchema: ValidateFunction = ajv.compile(
+  readSchema("godot-adapter-input.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
