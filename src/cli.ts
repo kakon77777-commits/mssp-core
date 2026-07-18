@@ -6,11 +6,12 @@ import { buildGraph, graphToMermaid } from "./graph.js";
 import { initializeProject } from "./init.js";
 import { loadProject } from "./io.js";
 import { runIslandTests } from "./island.js";
+import { buildIntermediateModel } from "./model.js";
 import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "./format.js";
 import { validateProject } from "./validate.js";
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  graph     Generate a Mermaid or JSON dependency graph.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  model     Export the deterministic, language-neutral MSSP Intermediate Model.\n  graph     Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -24,7 +25,7 @@ function positional(args: string[]): string[] {
     const value = args[i];
     if (!value) continue;
     if (value.startsWith("--")) {
-      if (["--format", "--out", "--module"].includes(value)) i += 1;
+      if (["--format", "--out", "--module", "--revision"].includes(value)) i += 1;
       continue;
     }
     result.push(value);
@@ -73,6 +74,22 @@ async function main(): Promise<number> {
   if (command === "explain") {
     const project = loadProject(projectArg);
     process.stdout.write(formatProjectSummary(project));
+    return 0;
+  }
+
+  if (command === "model") {
+    const project = loadProject(projectArg);
+    const revision = valueAfter(args, "--revision");
+    const model = buildIntermediateModel(project, revision ? { revision } : {});
+    const output = `${JSON.stringify(model, null, 2)}\n`;
+    const out = valueAfter(args, "--out");
+    if (out) {
+      const target = resolve(out);
+      writeFileSync(target, output, "utf8");
+      process.stdout.write(`Wrote MSSP Intermediate Model to ${target}\n`);
+    } else {
+      process.stdout.write(output);
+    }
     return 0;
   }
 
