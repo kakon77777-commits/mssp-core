@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — v0.2 groundwork
+## Unreleased — v0.2 intelligence and v0.3 visualization groundwork
 
 - Added MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Added stable public `MSSP_*_NNN` diagnostic codes while preserving v0.1 identifiers in `legacyCode`.
@@ -45,14 +45,21 @@
 - Added stable `MSSP_IMPACT_*` findings for unowned or overlapping paths, unknown relation targets, deleted declarations, and generated-source provenance gaps.
 - Impact reports preserve `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`; they never approve a change or select a semantic-version increment.
 - Added `schemas/git-diff-impact.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Visualization Model v0.3 and the `mssp viz` command.
+- Added deterministic layered module, candidate, and unresolved-reference nodes with `requires`, `affects`, and `affected-by` edges.
+- Added optional source navigation through `--source-base` while preserving repository-relative source identity.
+- Added a self-contained interactive HTML renderer with search, layer filters, node inspection, relation drawing, and no external runtime dependency.
+- Visualization preserves fixed `readOnly: true` and `autoMutation: false` invariants and never classifies or promotes candidates.
+- Added `schemas/visualization.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
 - Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
 - Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
 - Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
+- Migration: visualization consumers must keep candidates unclassified and unresolved references visible.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
