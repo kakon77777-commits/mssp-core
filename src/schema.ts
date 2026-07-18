@@ -38,6 +38,9 @@ export const validateModuleSchema: ValidateFunction = ajv.compile(
 export const validateDiagnosticSchema: ValidateFunction = ajv.compile(
   readSchema("diagnostic.schema.json"),
 );
+export const validateIntermediateModelSchema: ValidateFunction = ajv.compile(
+  readSchema("intermediate-model.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
