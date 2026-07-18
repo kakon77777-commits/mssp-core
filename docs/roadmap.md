@@ -184,7 +184,19 @@
 
 ## v0.4 — Runtime governance
 
-- [ ] Router contract evaluator.
+**Status:** Router Contract Evaluator foundation complete; execution, trace, and enforcement layers remain open.
+
+- [x] Router contract evaluator.
+  - versioned `mssp-router-request` and `mssp-router-evaluation-report` documents;
+  - declared TMS-only candidate boundary;
+  - exact scalar `activateWhen` condition subset;
+  - conservative numeric comparator-range subset;
+  - input, output, dependency, tool, data, permission, risk, and compatibility checks;
+  - explicit `selected`, `ambiguous`, `no-match`, and `indeterminate` outcomes;
+  - no silent tie-breaking when multiple TMS modules are eligible;
+  - stable `MSSP_ROUTE_001` through `MSSP_ROUTE_015` reasons;
+  - fixed deterministic, read-only, no-execution, no-network, no-auto-activation, no-mutation, and no-runtime-proof invariants;
+  - `mssp route`, JSON Schemas, normative specification, Traditional Chinese guide, tests, public API, reference fixture, and CI artifact.
 - [ ] DMS trace protocol.
 - [ ] SCL enforcement hooks.
 - [ ] Risk-aware execution policy.
