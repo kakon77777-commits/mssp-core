@@ -1,5 +1,10 @@
 import type { MsspAdapterDescriptor, MsspAdapterOptions } from "./adapter.js";
 import { EML_ADAPTER_DESCRIPTOR, EML_ADAPTER_ID, adaptEmlMsspExport } from "./eml-adapter.js";
+import {
+  GODOT_ADAPTER_DESCRIPTOR,
+  GODOT_ADAPTER_ID,
+  adaptGodotMsspExport,
+} from "./godot-adapter.js";
 import type { MsspIntermediateModel } from "./model.js";
 import {
   PYTHON_ADAPTER_DESCRIPTOR,
@@ -23,6 +28,11 @@ const REGISTERED_ADAPTERS: RegisteredJsonAdapter[] = [
     aliases: ["eml", EML_ADAPTER_ID],
     descriptor: EML_ADAPTER_DESCRIPTOR,
     adapt: adaptEmlMsspExport,
+  },
+  {
+    aliases: ["godot", "gd", GODOT_ADAPTER_ID],
+    descriptor: GODOT_ADAPTER_DESCRIPTOR,
+    adapt: adaptGodotMsspExport,
   },
   {
     aliases: ["python", "py", PYTHON_ADAPTER_ID],
