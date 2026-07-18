@@ -33,7 +33,13 @@ import type {
 import { scanRepository } from "./scanner.js";
 import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "./format.js";
 import { validateProject } from "./validate.js";
-import { buildVisualizationModel, visualizationToHtml } from "./visualization.js";
+import {
+  buildVisualizationModel,
+  VISUALIZATION_PROJECTION_IDS,
+  visualizationToHtml,
+  type VisualizationOptions,
+  type VisualizationProjectionId,
+} from "./visualization.js";
 
 const OPTIONS_WITH_VALUE = new Set([
   "--approval-rationale",
@@ -41,13 +47,17 @@ const OPTIONS_WITH_VALUE = new Set([
   "--approver",
   "--approver-kind",
   "--base",
+  "--batch-size",
   "--candidate",
   "--condition",
   "--decision",
   "--format",
   "--head",
+  "--initial-node-limit",
+  "--large-graph-threshold",
   "--layer",
   "--max-files",
+  "--max-rendered-edges",
   "--module",
   "--out",
   "--rationale",
@@ -56,10 +66,11 @@ const OPTIONS_WITH_VALUE = new Set([
   "--reviewer-kind",
   "--revision",
   "--source-base",
+  "--view",
 ]);
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp adapters [--json] [--out file]\n  mssp adapt <adapter> <semantic-export.json> [--revision value] [--out file]\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp viz [project] [--format html|json] [--revision value] [--source-base url] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  adapters           List machine-readable adapter descriptors.\n  adapt              Convert an explicit source export into the MSSP Intermediate Model.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  viz                Generate a read-only interactive architecture view with optional source navigation.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nAvailable adapters:\n  ${adapterAliasSummary()}\n\nAdapter invariants:\n  Adapters are deterministic, read-only, offline, non-executing, and never auto-promote candidates.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp adapters [--json] [--out file]\n  mssp adapt <adapter> <semantic-export.json> [--revision value] [--out file]\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp viz [project] [--format html|json] [--view layer|status|risk|connectivity] [--revision value] [--source-base url] [--large-graph-threshold number] [--initial-node-limit number] [--batch-size number] [--max-rendered-edges number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  adapters           List machine-readable adapter descriptors.\n  adapt              Convert an explicit source export into the MSSP Intermediate Model.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  viz                Generate a read-only multi-view architecture model or self-contained HTML with bounded large-graph rendering.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nAvailable adapters:\n  ${adapterAliasSummary()}\n\nAdapter invariants:\n  Adapters are deterministic, read-only, offline, non-executing, and never auto-promote candidates.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -70,6 +81,16 @@ function valueAfter(args: string[], name: string): string | undefined {
 function requiredValue(args: string[], name: string): string {
   const value = valueAfter(args, name)?.trim();
   if (!value) throw new Error(`${name} requires a value.`);
+  return value;
+}
+
+function positiveIntegerAfter(args: string[], name: string): number | undefined {
+  const raw = valueAfter(args, name);
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
   return value;
 }
 
@@ -96,6 +117,14 @@ function parseActorKind(value: string | undefined, label: string): PromotionActo
   if (!value) return undefined;
   if (value === "human" || value === "agent") return value;
   throw new Error(`${label} must be human or agent.`);
+}
+
+function parseVisualizationProjection(value: string | undefined): VisualizationProjectionId | undefined {
+  if (!value) return undefined;
+  if (VISUALIZATION_PROJECTION_IDS.includes(value as VisualizationProjectionId)) {
+    return value as VisualizationProjectionId;
+  }
+  throw new Error(`--view must be one of: ${VISUALIZATION_PROJECTION_IDS.join(", ")}.`);
 }
 
 function writeJsonOutput(value: unknown, out: string | undefined, label: string): void {
@@ -294,11 +323,20 @@ async function main(): Promise<number> {
     const project = loadProject(projectArg);
     const revision = valueAfter(args, "--revision");
     const intermediate = buildIntermediateModel(project, revision ? { revision } : {});
+    const options: VisualizationOptions = {};
     const sourceBase = valueAfter(args, "--source-base");
-    const visualization = buildVisualizationModel(
-      intermediate,
-      sourceBase ? { sourceBase } : {},
-    );
+    const defaultProjection = parseVisualizationProjection(valueAfter(args, "--view"));
+    const largeGraphThreshold = positiveIntegerAfter(args, "--large-graph-threshold");
+    const initialNodeLimit = positiveIntegerAfter(args, "--initial-node-limit");
+    const batchSize = positiveIntegerAfter(args, "--batch-size");
+    const maxRenderedEdges = positiveIntegerAfter(args, "--max-rendered-edges");
+    if (sourceBase) options.sourceBase = sourceBase;
+    if (defaultProjection) options.defaultProjection = defaultProjection;
+    if (largeGraphThreshold) options.largeGraphThreshold = largeGraphThreshold;
+    if (initialNodeLimit) options.initialNodeLimit = initialNodeLimit;
+    if (batchSize) options.batchSize = batchSize;
+    if (maxRenderedEdges) options.maxRenderedEdges = maxRenderedEdges;
+    const visualization = buildVisualizationModel(intermediate, options);
     const format = valueAfter(args, "--format") ?? "html";
     if (format !== "html" && format !== "json") {
       throw new Error(`Unsupported visualization format: ${format}`);
