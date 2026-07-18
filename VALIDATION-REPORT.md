@@ -18,7 +18,7 @@ The implementation is validated from clean Draft PR merge-ref checkouts with com
 ```text
 npm ci --no-audit --no-fund                                      PASS
 npm run typecheck                                                PASS
-npm test                                                         PASS — 16 test files, 81 tests
+npm test                                                         PASS — 16 test files, 85 tests
 npm run build                                                    PASS
 mssp adapters --json --out adapter-descriptors.json              PASS
 mssp adapt agent-skill examples/agent-skill-adapter/...          PASS
@@ -36,8 +36,8 @@ mssp classify . --revision <sha> --max-files 10000               PASS
 mssp review-candidate . ... --out promotion-review.json          PASS
 mssp drift examples/hello-mssp ... --out architecture-drift.json PASS
 mssp impact examples/hello-mssp --base HEAD^1 --head HEAD ...    PASS
-mssp viz examples/hello-mssp --format json ...                   PASS
-mssp viz examples/hello-mssp --format html ...                   PASS
+mssp viz examples/hello-mssp --format json --view connectivity ... PASS
+mssp viz examples/hello-mssp --format html --view risk ...       PASS
 mssp graph examples/hello-mssp                                   PASS
 validation artifact upload                                      PASS
 ```
@@ -132,11 +132,22 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 
 - Visualization is derived from the Intermediate Model rather than direct project mutation.
 - Declared modules, unclassified candidates, and unresolved references remain distinct node kinds.
-- Candidates are displayed under `UNCLASSIFIED`; missing relation targets are retained under `UNRESOLVED`.
+- Candidates preserve canonical `UNCLASSIFIED`; missing relation targets preserve canonical `UNRESOLVED`.
 - `requires`, `affects`, and `affected-by` relations preserve their declared direction.
+- `layer`, `status`, `risk`, and `connectivity` projections are emitted in stable order.
+- Every node appears exactly once in every projection.
+- Projection switching never changes canonical node layer, status, source, declaration, or relation identity.
+- Risk projection uses only explicit risk metadata and retains `UNSPECIFIED` rather than inferring a level.
+- Connectivity projection uses deterministic model relation degree and does not claim importance, authority, quality, risk, or runtime centrality.
+- Scale profiles record node/edge counts, large-graph threshold, initial limit, batch size, and maximum rendered edges.
+- Scale controls reject zero, negative, fractional, and unknown projection inputs.
 - JSON output is deterministic for identical input and options.
 - HTML output is self-contained and loads no CDN, external script, stylesheet, font, analytics service, or runtime package.
-- Search, layer filtering, node inspection, relation drawing, and optional source navigation are available without changing architecture authority.
+- The renderer uses bounded-batch DOM materialization when the graph meets the configured threshold.
+- Additional nodes are exposed in deterministic batches without deleting them from the embedded model.
+- Edges are indexed by endpoint and only visible-endpoint relations are materialized as SVG paths.
+- The renderer bounds SVG paths per pass without deleting relations from `model.edges`.
+- Projection switching, group filters, search, node inspection, relation drawing, and optional source navigation are available without changing architecture authority.
 - Source links preserve repository-relative source identity.
 - Visualization cannot classify, promote, approve, register, execute, or mutate the architecture it displays.
 
@@ -194,7 +205,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Classification review and final promotion approval are separate roles.
 - Drift findings cannot mutate architecture.
 - Impact findings cannot approve, version, or mutate changes.
-- Visualization cannot mutate or authorize architecture.
+- Visualization projections and renderer limits cannot mutate, classify, authorize, or erase architecture.
 - Adapter translation cannot execute source systems, register modules, grant permissions, or grant architecture authority.
 
 ## Package portability
@@ -216,7 +227,8 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No runtime-trace or deployment-topology drift comparison.
 - No historical or cross-version drift baseline.
 - No runtime DMS event transport.
-- No graph editor, architecture mutation UI, large-graph virtualization, or multi-view layout refinement.
+- No graph editor or architecture mutation UI.
+- No canvas/WebGL virtualization, worker-based layout, clustering, or measured browser performance guarantee; the current renderer provides deterministic multi-view bounded-batch DOM and visible-edge foundations.
 - No direct Agent Skill framework, model, tool, MCP, prompt, memory, permission, or live-runtime integration; the current adapter consumes a versioned semantic export.
 - No direct raw-EML parser integration or live EML toolchain bridge; the current adapter consumes a versioned semantic export.
 - No direct Godot editor/runtime/importer/resource-graph/live-project integration; the current adapter consumes a versioned semantic export.
