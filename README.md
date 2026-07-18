@@ -4,7 +4,7 @@
 
 **MSSP (Mother-Set and Subset Paradigm)** is a language-agnostic architecture method for making complex systems understandable, navigable, testable, governable, observable, and evolvable.
 
-It is not an application framework or a folder-naming convention. MSSP represents system identity, stable capabilities, optional subsets, change authority, diagnostics, routing, execution, compatibility, and change impact as machine-readable contracts.
+It represents system identity, stable capabilities, optional subsets, change authority, diagnostics, routing, execution, compatibility, and change impact as machine-readable contracts.
 
 ## Core model
 
@@ -22,35 +22,19 @@ MSSP = (FMS, SCL, SMS, TMS, DMS, Router, Runtime)
 | Router | Contract-based optional-subset selection | Does not turn TMS into hidden core dependencies. |
 | Runtime | Approved-plan execution | Executes declared modules and emits observable evidence. |
 
-MSSP-VT is represented by each module's `version`, `compatibility`, and `changeImpact` declarations.
-
-## Implemented command surface
+## Implemented commands
 
 ```text
-mssp init
-mssp lint
-mssp explain
-mssp graph
-mssp island
-mssp model
-mssp scan
-mssp classify
-mssp review-candidate
-mssp promote-candidate
-mssp drift
-mssp impact
-mssp route
-mssp viz
-mssp adapters
-mssp adapt
+init · lint · explain · graph · island · model · scan · classify
+review-candidate · promote-candidate · drift · impact · route · viz
+adapters · adapt
 ```
 
-Key boundaries:
+## Authority boundaries
 
 ```text
 Scanner evidence        != architecture declaration
 Classification          != promotion
-Review approval         != completed contract
 Manifest emission       != project registration
 Drift consistency       != semantic equivalence
 Impact detected         != incompatibility
@@ -58,24 +42,19 @@ Router selected         != activated or executed
 Permission match        != permission grant
 Compatibility satisfied != runtime compatibility proof
 Visualization           != architecture authority
-Projection grouping     != canonical layer mutation
-Hidden renderer data    != absent architecture
-Adapter metadata        != module declaration or permission grant
+Adapter metadata        != module declaration
 ```
 
-## Quick start
+## Router Contract Evaluator v0.4
 
 ```bash
-npm install
-npm run build
-node dist/cli.js lint examples/hello-mssp
-node dist/cli.js route examples/hello-mssp --request examples/hello-mssp/router-request.json --revision HEAD --out router-evaluation.json
-node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
+node dist/cli.js route examples/hello-mssp \
+  --request examples/hello-mssp/router-request.json \
+  --revision HEAD \
+  --out router-evaluation.json
 ```
 
-## Router governance
-
-`mssp route` evaluates declared TMS modules against explicit request facts and contracts without loading or executing them.
+Only declared TMS modules are candidates. The evaluator checks activation conditions, input/output contracts, module dependencies, tools, data, declared permissions, risk ceilings, MSSP compatibility, and required-module compatibility.
 
 ```text
 selected       exactly one eligible TMS and no uncertainty
@@ -84,7 +63,7 @@ no-match       no eligible TMS and no uncertainty
 indeterminate  unsupported or incomplete evidence remains
 ```
 
-It checks activation conditions, input/output contracts, required modules, tools, data, declared permissions, risk ceilings, MSSP compatibility, and required-module compatibility. It never silently ranks multiple eligible modules.
+It never silently ranks multiple eligible modules and never executes or activates a module.
 
 ```json
 {
@@ -98,33 +77,29 @@ It checks activation conditions, input/output contracts, required modules, tools
 }
 ```
 
-A `selected` result is static eligibility only. SCL approval, permission grant, execution planning, activation, and runtime compatibility proof remain separate stages.
+## Other implemented foundations
 
-## Visualization
+- v0.2 repository scanning, advisory classification, governed promotion, drift, and Git impact analysis.
+- v0.3 deterministic visualization with multi-view bounded rendering.
+- v0.3 Agent Skill, EML, Godot, Python, and Rust semantic-export adapters.
 
-`mssp viz` generates deterministic JSON or self-contained interactive HTML with `layer`, `status`, `risk`, and `connectivity` projections. Bounded DOM and SVG rendering keeps complete model data embedded while limiting visible browser work.
-
-## Adapter interoperability
-
-MSSP Core consumes versioned semantic exports instead of importing source runtimes. Current reference adapters cover Agent Skill, EML, Godot, Python, and Rust.
-
-Only complete explicit declarations map to Intermediate Modules. Undeclared source entities remain unclassified candidates. Source metadata does not become architecture authority or a permission grant.
+Only complete explicit declarations become modules. Unclassified evidence remains unclassified.
 
 ## Specifications
 
-- [Repository intelligence v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
+- [Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
 - [Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
 - [Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
 - [Router Contract Evaluator v0.4](spec/MSSP-ROUTER-CONTRACT-EVALUATOR-v0.4.md)
-- [Traditional Chinese Router guide](docs/router-contract-evaluator.zh-TW.md)
+- [Router guide — Traditional Chinese](docs/router-contract-evaluator.zh-TW.md)
 
-## Current status
+## Status
 
 - v0.1 architecture-contract MVP: complete.
-- Principal v0.2 repository-intelligence vertical slices: complete.
+- Principal v0.2 repository-intelligence slices: complete.
 - v0.3 visualization and five reference adapters: complete.
 - v0.4 Router Contract Evaluator foundation: complete.
-- Runtime planning, DMS trace transport, SCL enforcement hooks, and risk-aware execution policy remain open.
+- Runtime planning, DMS trace transport, SCL enforcement, and risk-aware execution remain open.
 
 See [Roadmap](docs/roadmap.md) and [Validation Report](VALIDATION-REPORT.md).
 
