@@ -1,12 +1,5 @@
-import {
-  formatSchemaErrors,
-  validateRouterRequestSchema,
-} from "./schema.js";
-import type {
-  LoadedModule,
-  LoadedProject,
-  RiskLevel,
-} from "./types.js";
+import { formatSchemaErrors, validateRouterRequestSchema } from "./schema.js";
+import type { LoadedModule, LoadedProject, RiskLevel } from "./types.js";
 
 export const MSSP_ROUTER_REQUEST_VERSION = "0.4" as const;
 export const MSSP_ROUTER_REQUEST_KIND = "mssp-router-request" as const;
@@ -117,18 +110,12 @@ export interface RouterEvaluationOptions {
   implementationVersion?: string;
 }
 
-interface NumericVersion {
-  major: number;
-  minor: number;
-  patch: number;
-}
-
-interface RangeEvaluation {
+export interface RouterRangeEvaluation {
   status: "satisfied" | "unsatisfied" | "unsupported";
   detail: string;
 }
 
-interface ConditionEvaluation {
+export interface RouterConditionEvaluation {
   status: "matched" | "unmatched" | "unsupported";
   fact?: string;
   expected?: RouterFactValue;
@@ -136,41 +123,20 @@ interface ConditionEvaluation {
   detail: string;
 }
 
-const RISK_RANK: Record<RiskLevel, number> = {
-  L0: 0,
-  L1: 1,
-  L2: 2,
-  L3: 3,
-  L4: 4,
-};
-
-function compareText(a: string, b: string): number {
-  return a.localeCompare(b);
-}
-
-function uniqueSorted(values: Iterable<string>): string[] {
-  return [...new Set(values)].sort(compareText);
-}
-
-function sortedFacts(facts: Record<string, RouterFactValue>): Record<string, RouterFactValue> {
-  return Object.fromEntries(Object.entries(facts).sort(([a], [b]) => compareText(a, b)));
-}
+const RISK_RANK: Record<RiskLevel, number> = { L0: 0, L1: 1, L2: 2, L3: 3, L4: 4 };
+const compareText = (a: string, b: string): number => a.localeCompare(b);
+const uniqueSorted = (values: Iterable<string>): string[] => [...new Set(values)].sort(compareText);
 
 function normalizeRequest(request: MsspRouterRequest): MsspRouterRequest {
   const normalized: MsspRouterRequest = {
-    schemaVersion: request.schemaVersion,
-    kind: request.kind,
-    requestId: request.requestId,
-    intent: request.intent,
-    facts: sortedFacts(request.facts),
-    msspVersion: request.msspVersion,
+    ...request,
+    facts: Object.fromEntries(Object.entries(request.facts).sort(([a], [b]) => compareText(a, b))),
     availableInputs: uniqueSorted(request.availableInputs),
     requiredOutputs: uniqueSorted(request.requiredOutputs),
     availableModules: uniqueSorted(request.availableModules),
     availableTools: uniqueSorted(request.availableTools),
     availableData: uniqueSorted(request.availableData),
     requestedPermissions: uniqueSorted(request.requestedPermissions),
-    maxRiskLevel: request.maxRiskLevel,
   };
   if (request.targetModules) normalized.targetModules = uniqueSorted(request.targetModules);
   return normalized;
@@ -185,7 +151,9 @@ export function parseRouterRequest(value: unknown): MsspRouterRequest {
   return normalizeRequest(value as MsspRouterRequest);
 }
 
-function parseNumericVersion(value: string): NumericVersion | undefined {
+interface NumericVersion { major: number; minor: number; patch: number }
+
+function parseVersion(value: string): NumericVersion | undefined {
   const match = /^(\d+)(?:\.(\d+))?(?:\.(\d+))?$/u.exec(value.trim());
   if (!match) return undefined;
   return {
@@ -196,58 +164,42 @@ function parseNumericVersion(value: string): NumericVersion | undefined {
 }
 
 function compareVersion(a: NumericVersion, b: NumericVersion): number {
-  if (a.major !== b.major) return a.major - b.major;
-  if (a.minor !== b.minor) return a.minor - b.minor;
-  return a.patch - b.patch;
+  return a.major !== b.major ? a.major - b.major
+    : a.minor !== b.minor ? a.minor - b.minor
+    : a.patch - b.patch;
 }
 
-function evaluateComparator(version: NumericVersion, comparator: string): RangeEvaluation {
-  if (comparator === "*") return { status: "satisfied", detail: "wildcard" };
-  const match = /^(>=|<=|>|<|=)?(\d+(?:\.\d+){0,2})$/u.exec(comparator);
-  if (!match) {
-    return { status: "unsupported", detail: `Unsupported comparator '${comparator}'.` };
-  }
-  const expected = parseNumericVersion(match[2] ?? "");
-  if (!expected) {
-    return { status: "unsupported", detail: `Unsupported version '${match[2] ?? ""}'.` };
-  }
-  const operator = match[1] ?? "=";
-  const compared = compareVersion(version, expected);
-  const satisfied = operator === ">=" ? compared >= 0
-    : operator === "<=" ? compared <= 0
-    : operator === ">" ? compared > 0
-    : operator === "<" ? compared < 0
-    : compared === 0;
-  return {
-    status: satisfied ? "satisfied" : "unsatisfied",
-    detail: `${operator}${match[2]}`,
-  };
-}
+export function evaluateNumericVersionRange(versionValue: string, rangeValue: string): RouterRangeEvaluation {
+  const version = parseVersion(versionValue);
+  if (!version) return { status: "unsupported", detail: `Unsupported version '${versionValue}'.` };
+  const tokens = rangeValue.trim().split(/\s+/u).filter(Boolean);
+  if (!tokens.length) return { status: "unsupported", detail: "Compatibility range is empty." };
 
-export function evaluateNumericVersionRange(versionValue: string, rangeValue: string): RangeEvaluation {
-  const version = parseNumericVersion(versionValue);
-  if (!version) {
-    return { status: "unsupported", detail: `Unsupported version '${versionValue}'.` };
-  }
-  const comparators = rangeValue.trim().split(/\s+/u).filter(Boolean);
-  if (!comparators.length) {
-    return { status: "unsupported", detail: "Compatibility range is empty." };
-  }
-  for (const comparator of comparators) {
-    const result = evaluateComparator(version, comparator);
-    if (result.status !== "satisfied") return result;
+  for (const token of tokens) {
+    if (token === "*") continue;
+    const match = /^(>=|<=|>|<|=)?(\d+(?:\.\d+){0,2})$/u.exec(token);
+    if (!match) return { status: "unsupported", detail: `Unsupported comparator '${token}'.` };
+    const expected = parseVersion(match[2] ?? "");
+    if (!expected) return { status: "unsupported", detail: `Unsupported comparator '${token}'.` };
+    const compared = compareVersion(version, expected);
+    const operator = match[1] ?? "=";
+    const satisfied = operator === ">=" ? compared >= 0
+      : operator === "<=" ? compared <= 0
+      : operator === ">" ? compared > 0
+      : operator === "<" ? compared < 0
+      : compared === 0;
+    if (!satisfied) return { status: "unsatisfied", detail: token };
   }
   return { status: "satisfied", detail: rangeValue };
 }
 
-function parseConditionLiteral(value: string): { supported: true; value: RouterFactValue } | { supported: false } {
+function parseLiteral(value: string): { supported: true; value: RouterFactValue } | { supported: false } {
   const trimmed = value.trim();
   if (!trimmed) return { supported: false };
   if (trimmed.startsWith('"')) {
     try {
       const parsed = JSON.parse(trimmed) as unknown;
-      if (typeof parsed === "string") return { supported: true, value: parsed };
-      return { supported: false };
+      return typeof parsed === "string" ? { supported: true, value: parsed } : { supported: false };
     } catch {
       return { supported: false };
     }
@@ -255,19 +207,16 @@ function parseConditionLiteral(value: string): { supported: true; value: RouterF
   if (trimmed === "true") return { supported: true, value: true };
   if (trimmed === "false") return { supported: true, value: false };
   if (trimmed === "null") return { supported: true, value: null };
-  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u.test(trimmed)) {
-    return { supported: true, value: Number(trimmed) };
-  }
-  if (/^[A-Za-z0-9_.:/-]+$/u.test(trimmed)) {
-    return { supported: true, value: trimmed };
-  }
-  return { supported: false };
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u.test(trimmed)) return { supported: true, value: Number(trimmed) };
+  return /^[A-Za-z0-9_.:/-]+$/u.test(trimmed)
+    ? { supported: true, value: trimmed }
+    : { supported: false };
 }
 
 export function evaluateRouterCondition(
   condition: string,
   facts: Record<string, RouterFactValue>,
-): ConditionEvaluation {
+): RouterConditionEvaluation {
   const match = /^\s*([A-Za-z0-9_.-]+)\s*(==|!=)\s*(.*?)\s*$/u.exec(condition);
   if (!match) {
     return {
@@ -277,25 +226,15 @@ export function evaluateRouterCondition(
   }
   const fact = match[1] ?? "";
   const operator = match[2] ?? "";
-  const literal = parseConditionLiteral(match[3] ?? "");
+  const literal = parseLiteral(match[3] ?? "");
   if (!literal.supported) {
-    return {
-      status: "unsupported",
-      fact,
-      detail: "Condition literal is unsupported or malformed.",
-    };
+    return { status: "unsupported", fact, detail: "Condition literal is unsupported or malformed." };
   }
   if (!Object.prototype.hasOwnProperty.call(facts, fact)) {
-    return {
-      status: "unmatched",
-      fact,
-      expected: literal.value,
-      detail: `Fact '${fact}' is absent.`,
-    };
+    return { status: "unmatched", fact, expected: literal.value, detail: `Fact '${fact}' is absent.` };
   }
-  const actual = facts[fact];
-  const equal = actual === literal.value;
-  const matched = operator === "==" ? equal : !equal;
+  const actual = facts[fact] as RouterFactValue;
+  const matched = operator === "==" ? actual === literal.value : actual !== literal.value;
   return {
     status: matched ? "matched" : "unmatched",
     fact,
@@ -320,6 +259,28 @@ function missing(required: readonly string[], available: readonly string[]): str
   return uniqueSorted(required.filter((value) => !availableSet.has(value)));
 }
 
+function conditionReason(condition: string, result: RouterConditionEvaluation): RouterDecisionReason {
+  const data: Record<string, unknown> = { condition, detail: result.detail };
+  if (result.fact !== undefined) data.fact = result.fact;
+  if (result.expected !== undefined) data.expected = result.expected;
+  if (result.actual !== undefined) data.actual = result.actual;
+  return result.status === "unsupported"
+    ? reason(
+      "MSSP_ROUTE_003",
+      "activation",
+      "indeterminate",
+      `Activation condition '${condition}' cannot be evaluated conservatively.`,
+      data,
+    )
+    : reason(
+      "MSSP_ROUTE_002",
+      "activation",
+      "rejected",
+      `Activation condition '${condition}' is not satisfied.`,
+      data,
+    );
+}
+
 function evaluateCandidate(
   module: LoadedModule,
   project: LoadedProject,
@@ -328,214 +289,97 @@ function evaluateCandidate(
   const manifest = module.manifest;
   const reasons: RouterDecisionReason[] = [];
   const matchedConditions: string[] = [];
-  const targetModules = request.targetModules;
 
-  if (targetModules && !targetModules.includes(manifest.id)) {
-    reasons.push(reason(
-      "MSSP_ROUTE_001",
-      "target",
-      "rejected",
-      "Module is outside the explicit target set.",
-      { targetModules },
-    ));
+  if (request.targetModules && !request.targetModules.includes(manifest.id)) {
+    reasons.push(reason("MSSP_ROUTE_001", "target", "rejected", "Module is outside the explicit target set.", {
+      targetModules: request.targetModules,
+    }));
   }
 
   for (const condition of manifest.activateWhen ?? []) {
     const result = evaluateRouterCondition(condition, request.facts);
-    if (result.status === "matched") {
-      matchedConditions.push(condition);
-    } else if (result.status === "unmatched") {
-      reasons.push(reason(
-        "MSSP_ROUTE_002",
-        "activation",
-        "rejected",
-        `Activation condition '${condition}' is not satisfied.`,
-        {
-          condition,
-          fact: result.fact,
-          expected: result.expected,
-          actual: result.actual,
-          detail: result.detail,
-        },
-      ));
-    } else {
-      reasons.push(reason(
-        "MSSP_ROUTE_003",
-        "activation",
-        "indeterminate",
-        `Activation condition '${condition}' cannot be evaluated conservatively.`,
-        { condition, detail: result.detail },
-      ));
-    }
+    if (result.status === "matched") matchedConditions.push(condition);
+    else reasons.push(conditionReason(condition, result));
   }
 
   const missingInputs = missing(manifest.inputs, request.availableInputs);
-  if (missingInputs.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_004",
-      "input",
-      "rejected",
-      "Required module inputs are unavailable.",
-      { missingInputs },
-    ));
-  }
-
+  if (missingInputs.length) reasons.push(reason("MSSP_ROUTE_004", "input", "rejected", "Required module inputs are unavailable.", { missingInputs }));
   const missingOutputs = missing(request.requiredOutputs, manifest.outputs);
-  if (missingOutputs.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_005",
-      "output",
-      "rejected",
-      "Module does not declare every required output.",
-      { missingOutputs },
-    ));
-  }
+  if (missingOutputs.length) reasons.push(reason("MSSP_ROUTE_005", "output", "rejected", "Module does not declare every required output.", { missingOutputs }));
 
-  const projectModuleById = new Map(project.modules.map((item) => [item.manifest.id, item]));
-  const unknownModules = manifest.requires.modules.filter((id) => !projectModuleById.has(id));
-  const unavailableModules = manifest.requires.modules.filter(
-    (id) => projectModuleById.has(id) && !request.availableModules.includes(id),
-  );
+  const projectModules = new Map(project.modules.map((item) => [item.manifest.id, item]));
+  const unknownModules = manifest.requires.modules.filter((id) => !projectModules.has(id));
+  const unavailableModules = manifest.requires.modules.filter((id) => projectModules.has(id) && !request.availableModules.includes(id));
   if (unknownModules.length || unavailableModules.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_006",
-      "dependency",
-      "rejected",
-      "Required module dependencies are missing or unavailable.",
-      {
-        unknownModules: uniqueSorted(unknownModules),
-        unavailableModules: uniqueSorted(unavailableModules),
-      },
-    ));
+    reasons.push(reason("MSSP_ROUTE_006", "dependency", "rejected", "Required module dependencies are missing or unavailable.", {
+      unknownModules: uniqueSorted(unknownModules),
+      unavailableModules: uniqueSorted(unavailableModules),
+    }));
   }
 
   const missingTools = missing(manifest.requires.tools, request.availableTools);
-  if (missingTools.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_007",
-      "tool",
-      "rejected",
-      "Required tools are unavailable.",
-      { missingTools },
-    ));
-  }
-
+  if (missingTools.length) reasons.push(reason("MSSP_ROUTE_007", "tool", "rejected", "Required tools are unavailable.", { missingTools }));
   const missingData = missing(manifest.requires.data, request.availableData);
-  if (missingData.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_008",
-      "data",
-      "rejected",
-      "Required data contracts are unavailable.",
-      { missingData },
-    ));
-  }
+  if (missingData.length) reasons.push(reason("MSSP_ROUTE_008", "data", "rejected", "Required data contracts are unavailable.", { missingData }));
 
-  const explicitlyDenied = request.requestedPermissions.filter((permission) =>
-    manifest.permissions.mayNot.includes(permission));
-  if (explicitlyDenied.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_010",
-      "permission",
-      "rejected",
-      "The request includes operations explicitly denied by the module contract.",
-      { explicitlyDenied: uniqueSorted(explicitlyDenied) },
-    ));
-  }
-  const deniedSet = new Set(explicitlyDenied);
-  const notPermitted = request.requestedPermissions.filter((permission) =>
-    !deniedSet.has(permission) && !manifest.permissions.may.includes(permission));
-  if (notPermitted.length) {
-    reasons.push(reason(
-      "MSSP_ROUTE_009",
-      "permission",
-      "rejected",
-      "The request includes operations not permitted by the module contract.",
-      { notPermitted: uniqueSorted(notPermitted) },
-    ));
-  }
+  const explicitlyDenied = request.requestedPermissions.filter((permission) => manifest.permissions.mayNot.includes(permission));
+  if (explicitlyDenied.length) reasons.push(reason("MSSP_ROUTE_010", "permission", "rejected", "The request includes operations explicitly denied by the module contract.", {
+    explicitlyDenied: uniqueSorted(explicitlyDenied),
+  }));
+  const denied = new Set(explicitlyDenied);
+  const notPermitted = request.requestedPermissions.filter((permission) => !denied.has(permission) && !manifest.permissions.may.includes(permission));
+  if (notPermitted.length) reasons.push(reason("MSSP_ROUTE_009", "permission", "rejected", "The request includes operations not permitted by the module contract.", {
+    notPermitted: uniqueSorted(notPermitted),
+  }));
 
   if (RISK_RANK[manifest.riskLevel] > RISK_RANK[request.maxRiskLevel]) {
-    reasons.push(reason(
-      "MSSP_ROUTE_011",
-      "risk",
-      "rejected",
-      "Module risk exceeds the request ceiling.",
-      { moduleRisk: manifest.riskLevel, maxRiskLevel: request.maxRiskLevel },
-    ));
+    reasons.push(reason("MSSP_ROUTE_011", "risk", "rejected", "Module risk exceeds the request ceiling.", {
+      moduleRisk: manifest.riskLevel,
+      maxRiskLevel: request.maxRiskLevel,
+    }));
   }
 
-  const msspCompatibility = evaluateNumericVersionRange(
-    request.msspVersion,
-    manifest.compatibility.mssp,
-  );
+  const msspCompatibility = evaluateNumericVersionRange(request.msspVersion, manifest.compatibility.mssp);
   if (msspCompatibility.status === "unsatisfied") {
-    reasons.push(reason(
-      "MSSP_ROUTE_012",
-      "compatibility",
-      "rejected",
-      "The requested MSSP version does not satisfy the module compatibility range.",
-      {
-        msspVersion: request.msspVersion,
-        range: manifest.compatibility.mssp,
-      },
-    ));
+    reasons.push(reason("MSSP_ROUTE_012", "compatibility", "rejected", "The requested MSSP version does not satisfy the module compatibility range.", {
+      msspVersion: request.msspVersion,
+      range: manifest.compatibility.mssp,
+    }));
   } else if (msspCompatibility.status === "unsupported") {
-    reasons.push(reason(
-      "MSSP_ROUTE_014",
-      "compatibility",
-      "indeterminate",
-      "The MSSP compatibility range cannot be evaluated conservatively.",
-      {
-        msspVersion: request.msspVersion,
-        range: manifest.compatibility.mssp,
-        detail: msspCompatibility.detail,
-      },
-    ));
+    reasons.push(reason("MSSP_ROUTE_014", "compatibility", "indeterminate", "The MSSP compatibility range cannot be evaluated conservatively.", {
+      msspVersion: request.msspVersion,
+      range: manifest.compatibility.mssp,
+      detail: msspCompatibility.detail,
+    }));
   }
 
   for (const dependencyId of uniqueSorted(manifest.requires.modules)) {
     const range = manifest.compatibility.modules?.[dependencyId];
-    const dependency = projectModuleById.get(dependencyId);
+    const dependency = projectModules.get(dependencyId);
     if (!range || !dependency) continue;
     const compatibility = evaluateNumericVersionRange(dependency.manifest.version, range);
     if (compatibility.status === "unsatisfied") {
-      reasons.push(reason(
-        "MSSP_ROUTE_013",
-        "compatibility",
-        "rejected",
-        `Dependency '${dependencyId}' does not satisfy the declared compatibility range.`,
-        {
-          dependencyId,
-          version: dependency.manifest.version,
-          range,
-        },
-      ));
+      reasons.push(reason("MSSP_ROUTE_013", "compatibility", "rejected", `Dependency '${dependencyId}' does not satisfy the declared compatibility range.`, {
+        dependencyId,
+        version: dependency.manifest.version,
+        range,
+      }));
     } else if (compatibility.status === "unsupported") {
-      reasons.push(reason(
-        "MSSP_ROUTE_014",
-        "compatibility",
-        "indeterminate",
-        `Compatibility for dependency '${dependencyId}' cannot be evaluated conservatively.`,
-        {
-          dependencyId,
-          version: dependency.manifest.version,
-          range,
-          detail: compatibility.detail,
-        },
-      ));
+      reasons.push(reason("MSSP_ROUTE_014", "compatibility", "indeterminate", `Compatibility for dependency '${dependencyId}' cannot be evaluated conservatively.`, {
+        dependencyId,
+        version: dependency.manifest.version,
+        range,
+        detail: compatibility.detail,
+      }));
     }
   }
 
   reasons.sort((a, b) => `${a.code}\u0000${a.message}`.localeCompare(`${b.code}\u0000${b.message}`));
-  const hasRejected = reasons.some((item) => item.status === "rejected");
-  const hasIndeterminate = reasons.some((item) => item.status === "indeterminate");
-  const decision: RouterCandidateDecision = hasRejected
+  const decision: RouterCandidateDecision = reasons.some((item) => item.status === "rejected")
     ? "rejected"
-    : hasIndeterminate
+    : reasons.some((item) => item.status === "indeterminate")
       ? "indeterminate"
       : "eligible";
-
   return {
     moduleId: manifest.id,
     name: manifest.name,
@@ -557,36 +401,26 @@ export function evaluateRouterContracts(
     .filter((module) => module.manifest.layer === "TMS")
     .sort((a, b) => compareText(a.manifest.id, b.manifest.id));
   const tmsIds = new Set(tmsModules.map((module) => module.manifest.id));
-  const findings: RouterEvaluationFinding[] = [];
-
-  for (const target of request.targetModules ?? []) {
-    if (!tmsIds.has(target)) {
-      findings.push({
-        code: "MSSP_ROUTE_015",
-        severity: "error",
-        message: `Target module '${target}' is not a declared TMS module.`,
-        data: { target },
-      });
-    }
-  }
+  const findings: RouterEvaluationFinding[] = (request.targetModules ?? [])
+    .filter((target) => !tmsIds.has(target))
+    .map((target) => ({
+      code: "MSSP_ROUTE_015",
+      severity: "error",
+      message: `Target module '${target}' is not a declared TMS module.`,
+      data: { target },
+    }));
 
   const candidates = tmsModules.map((module) => evaluateCandidate(module, project, request));
-  const eligibleModuleIds = candidates
-    .filter((candidate) => candidate.decision === "eligible")
-    .map((candidate) => candidate.moduleId);
-  const rejected = candidates.filter((candidate) => candidate.decision === "rejected").length;
-  const indeterminate = candidates.filter((candidate) => candidate.decision === "indeterminate").length;
-
-  let status: RouterEvaluationStatus;
-  if (eligibleModuleIds.length > 1) {
-    status = "ambiguous";
-  } else if (eligibleModuleIds.length === 1 && indeterminate === 0 && findings.length === 0) {
-    status = "selected";
-  } else if (eligibleModuleIds.length === 0 && indeterminate === 0 && findings.length === 0) {
-    status = "no-match";
-  } else {
-    status = "indeterminate";
-  }
+  const eligibleModuleIds = candidates.filter((item) => item.decision === "eligible").map((item) => item.moduleId);
+  const rejected = candidates.filter((item) => item.decision === "rejected").length;
+  const indeterminate = candidates.filter((item) => item.decision === "indeterminate").length;
+  const status: RouterEvaluationStatus = eligibleModuleIds.length > 1
+    ? "ambiguous"
+    : eligibleModuleIds.length === 1 && indeterminate === 0 && findings.length === 0
+      ? "selected"
+      : eligibleModuleIds.length === 0 && indeterminate === 0 && findings.length === 0
+        ? "no-match"
+        : "indeterminate";
 
   const sourceModel: MsspRouterEvaluationReport["sourceModel"] = {
     projectId: project.manifest.id,
