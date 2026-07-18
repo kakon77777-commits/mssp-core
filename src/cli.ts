@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { stringify as stringifyYaml } from "yaml";
 import { buildRepositoryClassificationReport } from "./classification-report.js";
 import { createDiagnosticEnvelope, getCanonicalDiagnosticCode } from "./diagnostics.js";
+import { buildArchitectureDriftReport } from "./drift.js";
 import { buildGraph, graphToMermaid } from "./graph.js";
 import { initializeProject } from "./init.js";
 import { loadProject } from "./io.js";
@@ -48,7 +49,7 @@ const OPTIONS_WITH_VALUE = new Set([
 ]);
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -221,6 +222,14 @@ async function main(): Promise<number> {
     writeFileSync(out, stringifyYaml(manifest), "utf8");
     process.stdout.write(`Promoted ${manifest.id} to ${out}\n`);
     return 0;
+  }
+
+  if (command === "drift") {
+    const project = loadProject(projectArg);
+    const options = scannerOptions(args);
+    const report = buildArchitectureDriftReport(project, options);
+    writeJsonOutput(report, valueAfter(args, "--out"), "MSSP architecture drift report");
+    return report.summary.ok ? 0 : 1;
   }
 
   if (command === "graph") {
