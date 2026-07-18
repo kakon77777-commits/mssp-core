@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — v0.2 intelligence and v0.3 visualization groundwork
+## Unreleased — v0.2 intelligence and v0.3 visualization/adapters groundwork
 
 - Added MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Added stable public `MSSP_*_NNN` diagnostic codes while preserving v0.1 identifiers in `legacyCode`.
@@ -51,8 +51,16 @@
 - Added a self-contained interactive HTML renderer with search, layer filters, node inspection, relation drawing, and no external runtime dependency.
 - Visualization preserves fixed `readOnly: true` and `autoMutation: false` invariants and never classifies or promotes candidates.
 - Added `schemas/visualization.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
+- Added MSSP Adapter Contract v0.3 with machine-readable adapter descriptors and conformance reports.
+- Added mandatory `deterministic`, `readOnly`, `noExecution`, `noNetwork`, `autoPromotion: false`, and `autoMutation: false` adapter invariants.
+- Added portable adapter provenance checks, stable ordering checks, duplicate-identity checks, module/candidate overlap checks, and Intermediate Model validation.
+- Added `mssp adapters` for descriptor discovery and public `MsspAdapter`, `runAdapter`, and `evaluateAdapterConformance` TypeScript APIs.
+- Added the `eml-mssp-export` reference adapter and `mssp adapt eml` CLI command.
+- Added a versioned EML semantic-export input Schema, explicit declaration-to-module mapping, undeclared symbol-to-candidate mapping, and relation mapping only from complete declarations.
+- The EML adapter does not parse raw `.eml`, execute EML, resolve imports, access the network, mutate source projects, or register emitted modules.
+- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, normative specifications, Traditional Chinese guide, reference fixture, tests, and CI artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- CI exports adapter descriptors, the EML-adapted Intermediate Model, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
@@ -60,6 +68,7 @@
 - Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
 - Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
 - Migration: visualization consumers must keep candidates unclassified and unresolved references visible.
+- Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
