@@ -37,13 +37,22 @@
 - Added executable-source findings for declarative FMS and SCL layers.
 - Added explicit `drift` and `indeterminate` states, stable `MSSP_DRIFT_001` through `MSSP_DRIFT_010` codes, and fixed `semanticEquivalence: false` and `autoMutation: false` invariants.
 - Added `schemas/architecture-drift.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Git Diff Impact Report v0.2 through `mssp impact`.
+- Added direct Git name-status collection with rename detection, project-relative path mapping, and project-boundary transitions.
+- Added direct module ownership classification for manifest, entry, and source changes.
+- Added transitive MSSP-VT propagation through `affects`, `affectedBy`, required-module, and compatibility declarations.
+- Added FMS, SCL, module-contract, version, compatibility, test, and TMS island review requirements.
+- Added stable `MSSP_IMPACT_*` findings for unowned or overlapping paths, unknown relation targets, deleted declarations, and generated-source provenance gaps.
+- Impact reports preserve `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`; they never approve a change or select a semantic-version increment.
+- Added `schemas/git-diff-impact.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
 - Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
 - Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
+- Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
