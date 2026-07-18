@@ -36,9 +36,9 @@ validation artifact upload                              PASS
 
 The implementation validation run was GitHub Actions run `29631332622` on head commit `b7849544f0f4fa1460577b8609f21b118b946df5`.
 
-The final documentation-synchronized branch run was GitHub Actions run `29631442639` on head commit `2850d189c3dc806976e64378db6274d9855fe73c`.
+Documentation synchronization was validated by GitHub Actions run `29631472328` on head commit `443107d63d1a95b72210495294492e2c1b756d6d`.
 
-The final artifact contains:
+The latest artifact contains:
 
 ```text
 architecture-drift.json
@@ -52,8 +52,8 @@ promotion-review.json
 repository-scan.json
 ```
 
-Artifact ID: `8425596975`  
-Artifact digest: `sha256:e61c4c702e6e1953cfe62d53309bb258491b0b46b57b5c1131182d24da976775`
+Artifact ID: `8425607729`  
+Artifact digest: `sha256:a93dbbefd80a2335d6e09bcddc77d370181bc1ca362b1850616a817976eebbdb`
 
 ## Protocol and model conformance
 
