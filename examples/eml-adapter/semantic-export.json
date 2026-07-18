@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "0.3",
+  "kind": "eml-mssp-export",
+  "project": {
+    "id": "example.eml-system",
+    "name": "EML Adapter Reference",
+    "version": "0.1.0",
+    "description": "Reference semantic export for the MSSP EML adapter.",
+    "sourceUri": "project/main.eml",
+    "metadata": {
+      "fixture": true
+    }
+  },
+  "layers": [
+    {
+      "id": "SMS",
+      "path": "core",
+      "sourceUri": "project/main.eml"
+    },
+    {
+      "id": "TMS",
+      "path": "plugins",
+      "sourceUri": "project/main.eml"
+    }
+  ],
+  "policies": [
+    {
+      "id": "adapter.readOnly",
+      "value": true,
+      "sourceUri": "project/policies.eml"
+    }
+  ],
+  "symbols": [
+    {
+      "id": "core.echo",
+      "name": "Echo Capability",
+      "symbolKind": "capability",
+      "sourceUri": "core/echo.eml",
+      "declaration": {
+        "version": "1.0.0",
+        "layer": "SMS",
+        "purpose": "Provide stable echo semantics.",
+        "entry": "echo",
+        "activation": [],
+        "inputs": ["text"],
+        "outputs": ["text"],
+        "requirements": {
+          "modules": [],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["read-input"],
+          "mayNot": ["network"]
+        },
+        "riskLevel": "L0",
+        "failureModes": ["invalid-text"],
+        "validation": ["output equals input"],
+        "tests": ["echoes plain text"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {}
+        },
+        "changeImpact": {
+          "affects": ["plugin.uppercase"],
+          "affectedBy": [],
+          "notes": []
+        },
+        "maintainer": "example-team"
+      }
+    },
+    {
+      "id": "plugin.uppercase",
+      "name": "Uppercase Plugin",
+      "symbolKind": "module",
+      "sourceUri": "plugins/uppercase.eml",
+      "declaration": {
+        "version": "1.0.0",
+        "layer": "TMS",
+        "purpose": "Convert text to uppercase when explicitly activated.",
+        "entry": "uppercase",
+        "activation": ["request.transform == uppercase"],
+        "inputs": ["text"],
+        "outputs": ["text"],
+        "requirements": {
+          "modules": ["core.echo"],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["read-input"],
+          "mayNot": ["network", "write-source"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["invalid-text"],
+        "validation": ["output is uppercase"],
+        "tests": ["uppercases plain text", "does not mutate input"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {
+            "core.echo": ">=1 <2"
+          }
+        },
+        "changeImpact": {
+          "affects": [],
+          "affectedBy": ["core.echo"],
+          "notes": []
+        }
+      }
+    },
+    {
+      "id": "experimental.preview",
+      "name": "Preview Experiment",
+      "symbolKind": "module",
+      "sourceUri": "experiments/preview.eml",
+      "purpose": "Explore a possible optional preview capability.",
+      "candidate": {
+        "path": "experiments/preview.eml",
+        "boundaryKind": "package",
+        "boundaryConfidence": 0.8,
+        "fileCount": 1,
+        "sourceFileCount": 1,
+        "languages": ["eml"]
+      }
+    }
+  ]
+}
