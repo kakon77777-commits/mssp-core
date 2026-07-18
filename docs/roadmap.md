@@ -16,6 +16,13 @@
 
 **Status:** In progress.
 
+- [x] Language-neutral MSSP Intermediate Model.
+  - deterministic JSON representation;
+  - portable source references and optional revision;
+  - normalized project, layer, module, policy, dependency, and MSSP-VT data;
+  - evidence records and adapter identity;
+  - JSON Schema, specification, CLI export, and conformance tests;
+  - architecture graph generated from the Intermediate Model.
 - [ ] Reverse-discover candidate modules from repositories.
 - [ ] Evidence-backed layer classification suggestions.
 - [ ] FMS/code consistency checks.
