@@ -41,6 +41,9 @@ export const validateDiagnosticSchema: ValidateFunction = ajv.compile(
 export const validateIntermediateModelSchema: ValidateFunction = ajv.compile(
   readSchema("intermediate-model.schema.json"),
 );
+export const validateClassificationSuggestionsSchema: ValidateFunction = ajv.compile(
+  readSchema("classification-suggestions.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
