@@ -30,6 +30,7 @@ jobs:
       - run: npm run build
       - run: node dist/cli.js adapters --json --out adapter-descriptors.json
       - run: node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision "${{ github.sha }}" --out eml-intermediate-model.json
+      - run: node dist/cli.js adapt godot examples/godot-adapter/semantic-export.json --revision "${{ github.sha }}" --out godot-intermediate-model.json
       - run: node dist/cli.js adapt python examples/python-adapter/semantic-export.json --revision "${{ github.sha }}" --out python-intermediate-model.json
       - run: node dist/cli.js adapt rust examples/rust-adapter/semantic-export.json --revision "${{ github.sha }}" --out rust-intermediate-model.json
       - run: node dist/cli.js lint examples/hello-mssp
@@ -57,6 +58,7 @@ jobs:
             diagnostics.json
             eml-intermediate-model.json
             git-diff-impact.json
+            godot-intermediate-model.json
             island-diagnostics.json
             intermediate-model.json
             promotion-review.json
