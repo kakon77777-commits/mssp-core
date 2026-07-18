@@ -2,18 +2,20 @@
 
 [繁體中文](README.zh-TW.md)
 
-**MSSP (Mother-Set and Subset Paradigm)** is a language-agnostic architecture method for understandable, testable, governable, observable, and evolvable systems.
+MSSP is a language-agnostic architecture method for understandable, testable, governable, observable, and evolvable systems.
 
 ```text
 MSSP = (FMS, SCL, SMS, TMS, DMS, Router, Runtime)
 ```
 
-Implemented:
+Implemented foundations:
 
-- v0.1 architecture contracts and validation;
-- v0.2 repository intelligence, governed promotion, drift, and impact;
-- v0.3 multi-view visualization and five semantic-export adapters;
-- v0.4 Router Contract Evaluator.
+```text
+v0.1  architecture contracts and validation
+v0.2  repository intelligence, promotion, drift, and impact
+v0.3  multi-view visualization and five adapters
+v0.4  Router Contract Evaluator
+```
 
 ## Router v0.4
 
@@ -36,9 +38,9 @@ indeterminate  unsupported or incomplete evidence remains
 The evaluator never silently ranks, executes, activates, registers, or mutates modules.
 
 ```text
-Router selected         != activated or executed
-Permission match        != permission grant
-Compatibility satisfied != runtime compatibility proof
+selected               != activated or executed
+permission match       != permission grant
+compatibility satisfied != runtime compatibility proof
 ```
 
 ## Commands
