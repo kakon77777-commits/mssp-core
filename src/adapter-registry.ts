@@ -1,4 +1,9 @@
 import type { MsspAdapterDescriptor, MsspAdapterOptions } from "./adapter.js";
+import {
+  AGENT_SKILL_ADAPTER_DESCRIPTOR,
+  AGENT_SKILL_ADAPTER_ID,
+  adaptAgentSkillMsspExport,
+} from "./agent-skill-adapter.js";
 import { EML_ADAPTER_DESCRIPTOR, EML_ADAPTER_ID, adaptEmlMsspExport } from "./eml-adapter.js";
 import {
   GODOT_ADAPTER_DESCRIPTOR,
@@ -24,6 +29,11 @@ export interface RegisteredJsonAdapter {
 }
 
 const REGISTERED_ADAPTERS: RegisteredJsonAdapter[] = [
+  {
+    aliases: ["agent-skill", "skill", AGENT_SKILL_ADAPTER_ID],
+    descriptor: AGENT_SKILL_ADAPTER_DESCRIPTOR,
+    adapt: adaptAgentSkillMsspExport,
+  },
   {
     aliases: ["eml", EML_ADAPTER_ID],
     descriptor: EML_ADAPTER_DESCRIPTOR,
