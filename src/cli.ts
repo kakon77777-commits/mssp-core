@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { buildRepositoryClassificationReport } from "./classification-report.js";
 import { createDiagnosticEnvelope, getCanonicalDiagnosticCode } from "./diagnostics.js";
 import { buildGraph, graphToMermaid } from "./graph.js";
 import { initializeProject } from "./init.js";
@@ -12,7 +13,7 @@ import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "
 import { validateProject } from "./validate.js";
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  model     Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan      Discover repository markers and unclassified module candidates as an Intermediate Model.\n  graph     Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  model     Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan      Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify  Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  graph     Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -43,6 +44,21 @@ function writeJsonOutput(value: unknown, out: string | undefined, label: string)
   } else {
     process.stdout.write(output);
   }
+}
+
+function scannerOptions(args: string[]): {
+  revision?: string;
+  maxFiles?: number;
+} {
+  const revision = valueAfter(args, "--revision");
+  const maxFilesValue = valueAfter(args, "--max-files");
+  const options: {
+    revision?: string;
+    maxFiles?: number;
+  } = {};
+  if (revision) options.revision = revision;
+  if (maxFilesValue) options.maxFiles = Number(maxFilesValue);
+  return options;
 }
 
 async function main(): Promise<number> {
@@ -98,16 +114,15 @@ async function main(): Promise<number> {
   }
 
   if (command === "scan") {
-    const revision = valueAfter(args, "--revision");
-    const maxFilesValue = valueAfter(args, "--max-files");
-    const options: {
-      revision?: string;
-      maxFiles?: number;
-    } = {};
-    if (revision) options.revision = revision;
-    if (maxFilesValue) options.maxFiles = Number(maxFilesValue);
-    const model = scanRepository(projectArg, options);
+    const model = scanRepository(projectArg, scannerOptions(args));
     writeJsonOutput(model, valueAfter(args, "--out"), "MSSP repository scan model");
+    return 0;
+  }
+
+  if (command === "classify") {
+    const model = scanRepository(projectArg, scannerOptions(args));
+    const report = buildRepositoryClassificationReport(model);
+    writeJsonOutput(report, valueAfter(args, "--out"), "MSSP classification suggestions");
     return 0;
   }
 
