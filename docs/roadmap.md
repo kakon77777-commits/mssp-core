@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization, Adapter Contract, EML, Python, Rust, and Godot adapters complete; Agent Skill coverage and graph refinement remain.
+**Status:** Visualization, Adapter Contract, EML, Python, Rust, Godot, and Agent Skill adapter vertical slices complete; multi-view and large-graph refinement remains.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -159,7 +159,17 @@
   - normative relations emitted only from explicit declarations;
   - no editor, runtime, importer, exporter, scene/resource/script loading, GDScript/C#/GDExtension/tool-script/plugin execution, `.godot` inspection, network, source mutation, or project registration;
   - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
-- [ ] Agent Skill adapter.
+- [x] Agent Skill adapter.
+  - versioned `agent-skill-mssp-export` semantic-export input;
+  - `mssp adapt agent-skill` and `mssp adapt skill` aliases;
+  - framework, manifest, protocol, environment, model-family, transport, skill identity, namespace, prompt, schema, tool, capability, trigger, permission, delegation, resource, and model-constraint metadata preservation;
+  - complete explicit declarations mapped to modules;
+  - undeclared agents, skills, tools, prompts, workflows, resources, memory policies, guardrails, handoffs, evaluators, and services preserved as unclassified candidates;
+  - duplicate component and Agent Skill identity rejection;
+  - normative relations emitted only from explicit declarations;
+  - source permissions remain metadata and do not become MSSP permission grants;
+  - no agent/model/prompt/skill/tool/workflow execution, MCP or transport opening, permission grant, credential or memory inspection, package installation, network, source mutation, or project registration;
+  - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, public API, CLI, and CI artifact.
 - [ ] Multi-view layout and large-graph performance refinement.
 
 ## v0.4 — Runtime governance
