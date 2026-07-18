@@ -27,6 +27,8 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 進
 ## 已實作命令
 
 - `mssp init`：建立可直接採用的專案骨架。
+- `mssp adapters`：列出機器可讀的 Adapter Descriptor。
+- `mssp adapt eml`：把版本化 EML semantic export 轉成 Intermediate Model。
 - `mssp lint`：檢查 Schema、層級位置、依賴方向、FMS 純度、循環、入口與 MSSP-VT 關聯。
 - `mssp island`：檢查 TMS 孤島測試義務。
 - `mssp model`：輸出可重現、語言無關的 Intermediate Model。
@@ -40,7 +42,7 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 進
 - `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
 - `mssp explain`：輸出簡潔架構清單。
 
-Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契約完成。Manifest 輸出不等於模組註冊。Drift 與 Impact 報告都不能修改或批准自己所描述的架構。Visualization 也不會替畫面中的候選分類或升格。
+Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契約完成。Manifest 輸出不等於模組註冊。Drift 與 Impact 報告都不能修改或批准自己所描述的架構。Visualization 不會替畫面中的候選分類或升格。Adapter 只轉換明確 Export，不會執行來源系統，也不會把未聲明實體自動升格。
 
 ## 五分鐘開始
 
@@ -48,6 +50,10 @@ Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契�
 npm install
 npm run build
 
+node dist/cli.js adapters --json --out /tmp/adapter-descriptors.json
+node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
+  --revision HEAD \
+  --out /tmp/eml-intermediate-model.json
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
@@ -80,6 +86,8 @@ node dist/cli.js graph /tmp/my-mssp-project \
 倉庫開發期間：
 
 ```bash
+npm run mssp -- adapters --json
+npm run mssp -- adapt eml examples/eml-adapter/semantic-export.json --revision HEAD
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
@@ -101,6 +109,8 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 - [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
 - [MSSP Git Diff Impact Analysis v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
 - [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
+- [MSSP Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
+- [MSSP EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
 
 診斷 JSON 消費者應讀取 `diagnostics[].code`；v0.1 內部代碼保留在 `diagnostics[].legacyCode`。
 
@@ -282,6 +292,43 @@ reference  → UNRESOLVED
 
 中文指南：[Visualization](docs/visualization.zh-TW.md)。
 
+## Adapter 互通與 EML
+
+```text
+外部 Parser／Editor／Compiler
+              ↓ 版本化 Semantic Export
+          MSSP Adapter
+              ↓ 可重現轉換
+       MSSP Intermediate Model
+```
+
+每個合規 Adapter 都要公開機器可讀 Descriptor，並固定保留：
+
+```json
+{
+  "deterministic": true,
+  "readOnly": true,
+  "noExecution": true,
+  "noNetwork": true,
+  "autoPromotion": false,
+  "autoMutation": false
+}
+```
+
+第一個 reference adapter 接受 `eml-mssp-export` v0.3 JSON：
+
+```bash
+node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
+  --revision HEAD \
+  --out eml-intermediate-model.json
+```
+
+它不解析原始 `.eml`、不執行 EML、不解析 import，也不修改專案。完整且明確的 EML `declaration` 會映射為 module representation；缺少 declaration 的 symbol，即使 EML `symbolKind` 是 `module`，仍然保持為 `unclassified` candidate。
+
+Adapter 輸出只代表來源已明確聲明，不代表已通過 SCL 批准、相容性驗證、專案註冊或部署審查。
+
+中文指南：[Adapter 與 EML](docs/adapters.zh-TW.md)。
+
 ## Module contract 範例
 
 ```yaml
@@ -340,14 +387,15 @@ MSSP = 架構組織、能力定位、子集治理
 EML  = 語義表達、壓縮、可執行語言工具鏈
 ```
 
-未來 `@eml/mssp-adapter` 可以把 EML AST 與 trace 轉換為 Intermediate Model 與 Diagnostic Protocol。MSSP Core 仍必須獨立於 EML parser、runtime、editor 與 emitters。
+`eml-mssp-export` reference adapter 已可把明確的 EML semantic export 轉換成 Intermediate Model，而不匯入 EML parser、runtime、editor 或 emitters。未來 EML 工具鏈可直接產生該 Export；原始 EML 解析仍不屬於 MSSP Core。
 
 ## 倉庫結構
 
 ```text
 schemas/                 正式 Schema
 src/                     TypeScript Core 與 CLI
-examples/hello-mssp/     完整參考案例
+examples/hello-mssp/     完整 MSSP 參考案例
+examples/eml-adapter/    EML semantic export 參考 fixture
 spec/                    規範與互通協議
 docs/                    採用、協議、Roadmap 與研究指南
 .github/                  CI 與架構審查流程
@@ -357,9 +405,9 @@ docs/                    採用、協議、Roadmap 與研究指南
 
 `v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 的主要垂直切片已實作：Diagnostic Protocol、Intermediate Model、Scanner、靜態依賴證據、Advisory Classification、受治理升格、結構漂移，以及 Git Diff Impact Analysis。
 
-v0.3 Visualization Foundation 也已完成：可重現 Visualization Model、原始碼導覽、自包含互動式 HTML、公開 API、Schema、測試與 CI Artifact。EML、Python、Rust、Godot 與 Agent Skill adapters 尚未實作。
+v0.3 Visualization Foundation、Adapter Contract 與第一個 EML reference adapter 已完成。EML Adapter 包含機器可讀 Descriptor 與 Input Schema、Conformance Evaluation、公開 API、CLI、參考 Fixture、測試、規格與 CI Artifact。
 
-編譯器等級 AST 依賴抽取、完整語言 alias 解析、完全等價的 Git ignore 行為、生成來源追蹤、patch hunk／symbol-level impact，以及自動 Semantic Version 選擇，仍不屬於目前 Reference Implementation。
+Python、Rust、Godot 與 Agent Skill adapters 尚未實作。編譯器等級 AST 依賴抽取、完整語言 alias 解析、完全等價的 Git ignore 行為、生成來源追蹤、patch hunk／symbol-level impact，以及自動 Semantic Version 選擇，仍不屬於目前 Reference Implementation。
 
 ## 授權
 
