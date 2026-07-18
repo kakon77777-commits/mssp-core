@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization, Adapter Contract, EML, Python, Rust, Godot, and Agent Skill adapter vertical slices complete; multi-view and large-graph refinement remains.
+**Status:** Visualization, multi-view/large-graph rendering foundation, Adapter Contract, and all five reference adapter vertical slices complete.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -109,6 +109,17 @@
   - repository-relative `sourceUri` preservation;
   - optional `--source-base` links;
   - source navigation does not alter architecture authority.
+- [x] Multi-view layout and large-graph performance foundation.
+  - deterministic `layer`, `status`, `risk`, and `connectivity` projections;
+  - every projection contains every node exactly once;
+  - projection grouping never mutates canonical node layer, status, source, or relation identity;
+  - explicit `--view` CLI default selection;
+  - scale profile with node/edge counts and large-graph threshold;
+  - bounded-batch DOM materialization with configurable initial and incremental limits;
+  - endpoint-indexed, visible-endpoints-only SVG relation rendering;
+  - configurable maximum rendered edge count per pass;
+  - hidden or not-yet-materialized data remains present in the embedded model;
+  - JSON Schema, normative specification, Traditional Chinese guide, tests, and CI coverage.
 - [x] Adapter Contract v0.3.
   - machine-readable adapter descriptors and conformance reports;
   - deterministic, read-only, offline, non-executing adapter invariants;
@@ -170,7 +181,6 @@
   - source permissions remain metadata and do not become MSSP permission grants;
   - no agent/model/prompt/skill/tool/workflow execution, MCP or transport opening, permission grant, credential or memory inspection, package installation, network, source mutation, or project registration;
   - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, public API, CLI, and CI artifact.
-- [ ] Multi-view layout and large-graph performance refinement.
 
 ## v0.4 — Runtime governance
 
