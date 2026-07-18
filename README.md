@@ -32,15 +32,17 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - `mssp model`: export the deterministic, language-neutral MSSP Intermediate Model from manifests.
 - `mssp scan`: scan an existing repository and emit evidence-backed, unclassified structural candidates.
 - `mssp classify`: produce evidence-backed, review-required layer suggestions without promoting candidates.
+- `mssp review-candidate`: record an explicit approve, reject, or defer decision and produce a blocked contract draft when approved.
+- `mssp promote-candidate`: emit a completed module manifest only after independent final approval.
 - `mssp graph`: generate a Mermaid or JSON architecture graph from the Intermediate Model.
 - `mssp explain`: print a concise inventory for humans and agents.
 - MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Stable public `MSSP_*_NNN` diagnostic codes with v0.1 identifiers preserved as `legacyCode`.
-- Portable source references, declared dependency/MSSP-VT relations, and scanner evidence records.
+- Portable source references, declared dependency/MSSP-VT relations, scanner evidence, classification evidence, and promotion provenance.
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
-The scanner does not assign MSSP layers. The classifier emits hypotheses, support, counterevidence, and unresolved questions, while preserving `autoPromotion: false` and `review-required`.
+The scanner does not assign MSSP layers. The classifier emits hypotheses, support, counterevidence, and unresolved questions while preserving `autoPromotion: false`. Review approval still does not equal promotion: every contract must be completed and independently approved.
 
 ## Five-minute quick start
 
@@ -49,10 +51,15 @@ npm install
 npm run build
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
-node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
 node dist/cli.js scan . --revision HEAD --out /tmp/repository-scan.json
 node dist/cli.js classify . --revision HEAD --out /tmp/classification-suggestions.json
+node dist/cli.js review-candidate . \
+  --candidate candidate.repository \
+  --decision defer \
+  --reviewer architecture-reviewer \
+  --rationale "The aggregate boundary needs a system-level decision." \
+  --out /tmp/promotion-review.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -61,7 +68,6 @@ During repository development:
 
 ```bash
 npm run mssp -- lint examples/hello-mssp
-npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
 npm run mssp -- classify . --revision HEAD --max-files 10000
@@ -74,7 +80,7 @@ The JSON diagnostic commands emit the [MSSP Diagnostic Protocol v0.2](spec/MSSP-
 
 The `model` and `scan` commands emit the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, scanners, adapters, IDEs, agents, graphs, and future impact analysis.
 
-The `classify` command emits the independent [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) report.
+The `classify` command emits the independent [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) report. Candidate review and manifest emission follow the [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md).
 
 ## Repository Scanner v0.2
 
@@ -84,8 +90,6 @@ Repository
 Markers / .gitignore / workspaces / generated-source conventions
     ↓ static dependency evidence
 Unclassified candidates
-    ↓ human or governed Agent review
-Declared MSSP modules
 ```
 
 The scanner currently provides:
@@ -101,18 +105,9 @@ The scanner currently provides:
 
 Static dependencies stay in `discovery.dependencies`. They are **not** promoted into `relations`, because a source import is evidence rather than an approved runtime architecture contract.
 
-A candidate records:
+A candidate records repository-relative path, boundary kind and confidence, file counts, observed languages, source references, evidence, and `status: unclassified`.
 
-- repository-relative path;
-- boundary kind and structural confidence;
-- file and source-file counts;
-- observed languages;
-- source references and evidence;
-- `status: unclassified`.
-
-`boundaryConfidence` means “this path is probably a structural boundary.” It does not mean “this path is probably TMS.”
-
-The default scan bound is 50,000 files. A scan that reaches the bound sets `discovery.truncated` to `true` and MUST NOT be treated as complete.
+`boundaryConfidence` means “this path is probably a structural boundary.” It does not mean “this path is probably TMS.” A scan that reaches the default 50,000-file bound sets `discovery.truncated` to `true` and MUST NOT be treated as complete.
 
 Full scanner specification: [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-REPOSITORY-SCANNER-v0.2.md).
 
@@ -122,8 +117,6 @@ Full scanner specification: [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-R
 Unclassified candidate
     ↓ deterministic advisory rules
 Suggested layer + support + counterevidence + unresolved questions
-    ↓ separate review and declaration
-Approved MSSP module or rejected hypothesis
 ```
 
 The classifier may suggest `FMS`, `SCL`, `SMS`, `TMS`, `DMS`, `ROUTER`, `RUNTIME`, or `UNDETERMINED`.
@@ -146,23 +139,66 @@ Every suggestion preserves:
 
 `supportScore` is heuristic support, not probability. A truncated scan forces all suggestions to low confidence. Repository and source-root aggregate boundaries remain `UNDETERMINED`.
 
-The report cannot modify candidates, create module declarations, create runtime relations, approve its own recommendation, or bypass architecture review.
-
 Full specification: [`spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md).
+
+## Candidate review and promotion v0.2
+
+```text
+Candidate
+  → classification suggestion
+  → explicit reviewer decision
+  → blocked contract draft
+  → contract completion
+  → independent final approval
+  → module manifest emission
+```
+
+Create a review record:
+
+```bash
+node dist/cli.js review-candidate . \
+  --candidate packages/exporter \
+  --decision approve \
+  --layer TMS \
+  --reviewer architecture-reviewer \
+  --rationale "The capability is optional and independently activated." \
+  --out exporter-review.json
+```
+
+An approved review creates a deliberately incomplete `contractDraft`. It remains blocked while any `TODO`, unresolved review condition, truncated scan, missing maintainer, missing executable entry, missing TMS activation rule, missing failure mode, missing validation criterion, or missing representative test remains.
+
+After completing the contract, a different actor may emit the manifest:
+
+```bash
+node dist/cli.js promote-candidate exporter-review.json \
+  --approver release-approver \
+  --approval-rationale "Contract, permissions, failure behavior, validation, and tests are complete." \
+  --out TMS/exporter/module.yaml
+```
+
+The promotion command recomputes blockers, validates `module.schema.json`, records provenance in `metadata.promotion`, and refuses to overwrite an existing file. It does not modify `mssp.yaml`, register the module automatically, create runtime relations, or execute candidate code.
+
+```text
+Suggestion ≠ Review decision
+Review approval ≠ Completed contract
+Completed contract ≠ Final approval
+Manifest emission ≠ Project registration
+```
+
+Traditional Chinese guide: [`docs/candidate-promotion.zh-TW.md`](docs/candidate-promotion.zh-TW.md).
 
 ## Adopt MSSP in an existing repository
 
 1. Run `mssp scan` to create a structural and dependency evidence inventory.
 2. Run `mssp classify` to produce reviewable hypotheses, not declarations.
 3. Review support, counterevidence, alternatives, and unresolved questions.
-4. Add `mssp.yaml` at the repository root.
-5. Create `FMS/00_SYSTEM_NARRATIVE.md`, `FMS/01_MODULE_INDEX.md`, and `FMS/02_ARCHITECTURE_NOTES.md`.
-6. Declare stable capabilities as SMS manifests.
-7. Declare optional capabilities as TMS manifests with activation, permissions, failure modes, validation, and representative tests.
+4. Record candidate decisions with `mssp review-candidate`.
+5. Complete approved contract drafts and obtain independent final approval before `mssp promote-candidate`.
+6. Register emitted manifests in `mssp.yaml` through an ordinary architecture change.
+7. Create and maintain FMS system narrative, module index, and architecture notes.
 8. Add SCL change contracts and DMS diagnostic contracts.
 9. Run `mssp lint` and `mssp island` in CI.
-10. Require an FMS review whenever a pull request changes system identity, module boundaries, or dependency direction.
-11. Update MSSP-VT impact relations whenever compatibility changes.
+10. Update MSSP-VT impact relations whenever compatibility changes.
 
 ## Module contract
 
@@ -213,7 +249,7 @@ MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
        Validator / Graph / IDE / Agent / Impact Analysis
 ```
 
-The model distinguishes approved `modules` from unclassified `candidates`, and normative `relations` from scanner-derived `discovery.dependencies`. The reference output is deterministic, portable, and evidence-backed.
+The model distinguishes approved `modules` from unclassified `candidates`, and normative `relations` from scanner-derived `discovery.dependencies`.
 
 ## Island-test rule
 
@@ -234,22 +270,20 @@ EML  = semantic expression, compression, executable language tooling
 
 The future `@eml/mssp-adapter` should translate EML AST and trace data into the MSSP Intermediate Model and Diagnostic Protocol. MSSP Core must remain independent from EML.
 
-The package name is reserved for publication; before npm publication, run the repository-local `node dist/cli.js` commands shown above.
-
 ## Repository map
 
 ```text
-schemas/                 Normative schemas for manifests, diagnostics, models, and classification reports
-src/                     TypeScript core, scanner, classifier, evidence helpers, and CLI
+schemas/                 Normative schemas for manifests, diagnostics, models, classification, and promotion review
+src/                     TypeScript core, scanner, classifier, promotion workflow, evidence helpers, and CLI
 examples/hello-mssp/     Complete reference adoption
 spec/                    Method and interoperability specifications
-docs/                    Adoption, protocol guides, classification guide, EML integration, whitepaper, roadmap
+docs/                    Adoption and protocol guides, EML integration, whitepaper, roadmap
 .github/                  CI and architecture-review workflow
 ```
 
 ## Status
 
-`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, generated-source filtering, and evidence-backed classification suggestions are implemented. Tree-sitter/compiler-grade dependency resolution, candidate promotion, FMS/code drift analysis, and Git diff impact inference remain open.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, generated-source filtering, evidence-backed classification suggestions, and governed candidate review/promotion are implemented. Tree-sitter/compiler-grade dependency resolution, FMS/code drift analysis, and Git diff impact inference remain open.
 
 ## License
 
