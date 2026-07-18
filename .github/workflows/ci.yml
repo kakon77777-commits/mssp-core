@@ -27,9 +27,14 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: node dist/cli.js lint examples/hello-mssp
+      - run: node dist/cli.js lint examples/hello-mssp --json > diagnostics.json
       - run: node dist/cli.js island examples/hello-mssp
+      - run: node dist/cli.js island examples/hello-mssp --json > island-diagnostics.json
       - run: node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
       - uses: actions/upload-artifact@v4
         with:
-          name: mssp-architecture
-          path: architecture.mmd
+          name: mssp-validation-artifacts
+          path: |
+            architecture.mmd
+            diagnostics.json
+            island-diagnostics.json
