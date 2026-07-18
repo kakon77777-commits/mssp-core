@@ -95,10 +95,26 @@
 
 ## v0.3 — Visualization and adapters
 
-- [ ] `mssp-viz` interactive architecture graph.
+**Status:** Visualization foundation complete; adapter work remains.
+
+- [x] `mssp-viz` interactive architecture graph foundation.
+  - deterministic Visualization Model v0.3;
+  - declared module, unclassified candidate, and unresolved-reference nodes;
+  - `requires`, `affects`, and `affected-by` relations;
+  - self-contained HTML with no external runtime dependency;
+  - search, layer filters, node details, and responsive relation drawing;
+  - JSON Schema, specification, Traditional Chinese guide, tests, and CI artifacts;
+  - fixed `readOnly: true` and `autoMutation: false` invariants.
+- [x] Source navigation from graph nodes.
+  - repository-relative `sourceUri` preservation;
+  - optional `--source-base` links;
+  - source navigation does not alter architecture authority.
 - [ ] EML adapter.
-- [ ] Python, Rust, Godot, and Agent Skill adapters.
-- [ ] Source navigation from graph nodes.
+- [ ] Python adapter.
+- [ ] Rust adapter.
+- [ ] Godot adapter.
+- [ ] Agent Skill adapter.
+- [ ] Multi-view layout and large-graph performance refinement.
 
 ## v0.4 — Runtime governance
 
