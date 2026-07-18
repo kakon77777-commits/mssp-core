@@ -29,18 +29,19 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 進
 - `mssp init`：建立可直接採用的 MSSP 專案骨架。
 - `mssp lint`：檢查 Schema、層級位置、依賴方向、FMS 純元資料、循環依賴、入口檔與 MSSP-VT 關聯。
 - `mssp island`：執行 TMS 孤島規則檢查。
-- `mssp model`：從 manifest 輸出可重現、語言無關的 Intermediate Model。
+- `mssp model`：從 Manifest 輸出可重現、語言無關的 Intermediate Model。
 - `mssp scan`：掃描既有倉庫，輸出有證據、尚未分類的結構候選。
 - `mssp classify`：輸出有證據、必須審查的層級建議，不自動升格候選。
-- `mssp review-candidate`：記錄明確的核准、拒絕或延後決策；核准時產生受阻塞的契約草稿。
-- `mssp promote-candidate`：只有在契約補完並取得獨立最終批准後，才輸出 module manifest。
+- `mssp review-candidate`：記錄核准、拒絕或延後決策；核准時產生受阻塞的契約草稿。
+- `mssp promote-candidate`：只有在契約補完並取得獨立最終批准後，才輸出 Module Manifest。
+- `mssp drift`：比較 canonical FMS、Module Manifest 與有界的原始碼所有權，不修改專案。
 - `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
 - `mssp explain`：向人類與 Agent 輸出簡潔架構清單。
 - `lint --json` 與 `island --json` 輸出 MSSP Diagnostic Protocol v0.2。
 - 公共診斷採穩定 `MSSP_*_NNN` 代碼，並以 `legacyCode` 保留 v0.1 內部代碼。
-- 中介模型具有可攜來源、正式關係、Scanner 證據、分類證據與升格來源鏈。
+- 中介模型具有可攜來源、正式關係、Scanner 證據、分類證據、升格來源鏈與結構漂移證據。
 
-Scanner 不分配 MSSP 層級。Classifier 只輸出假說、支持證據、反向證據與未決問題，並固定保留 `autoPromotion: false`。即使審查者核准，也不等於契約已完成或已正式升格。
+Scanner 不分配 MSSP 層級。Classifier 只輸出假說、支持證據、反向證據與未決問題，並固定保留 `autoPromotion: false`。審查核准不等於契約已完成，也不等於正式升格。乾淨的 Drift Report 只代表目前可觀測的結構契約一致，不代表語義或 Runtime 等價。
 
 ## 五分鐘開始
 
@@ -58,15 +59,29 @@ node dist/cli.js review-candidate . \
   --reviewer architecture-reviewer \
   --rationale "聚合邊界仍需要系統層級判斷。" \
   --out /tmp/promotion-review.json
+node dist/cli.js drift /tmp/my-mssp-project --revision HEAD --out /tmp/architecture-drift.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
+```
+
+本倉庫開發時：
+
+```bash
+npm run mssp -- lint examples/hello-mssp
+npm run mssp -- model examples/hello-mssp --revision HEAD
+npm run mssp -- scan . --revision HEAD --max-files 10000
+npm run mssp -- classify . --revision HEAD --max-files 10000
+npm run mssp -- drift examples/hello-mssp --revision HEAD --max-files 10000
+npm run mssp -- explain examples/hello-mssp
+npm run mssp -- island examples/hello-mssp
+npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
 
 診斷 JSON 遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。
 
 `model` 與 `scan` 都輸出 [`MSSP Intermediate Model v0.2`](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)。
 
-`classify` 輸出獨立的 [`MSSP Classification Suggestions v0.2`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)。候選審查與 manifest 輸出遵循 [`MSSP Candidate Review and Promotion Protocol v0.2`](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)。
+`classify` 輸出 [`MSSP Classification Suggestions v0.2`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)。候選審查與 Manifest 輸出遵循 [`MSSP Candidate Review and Promotion Protocol v0.2`](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)。結構一致性報告遵循 [`MSSP Architecture Drift Report v0.2`](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)。
 
 ## Repository Scanner v0.2
 
@@ -75,10 +90,10 @@ node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architec
     ↓ 可重現、有界的盤點
 專案標記 / .gitignore / Workspace / 生成檔慣例
     ↓ 靜態依賴證據
-尚未分類的 candidates
+尚未分類的 Candidates
 ```
 
-目前 Scanner 已包含：
+目前 Scanner 包含：
 
 - Node.js、Python、Rust、Go、Godot、JVM 與 .NET 專案標記；
 - 慣例來源目錄與多模組邊界候選；
@@ -86,10 +101,10 @@ node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architec
 - npm、pnpm、Cargo Workspace 發現；
 - Workspace 成員的結構信心加強；
 - JavaScript／TypeScript、Python、Go、Rust、GDScript 靜態引用抽取；
-- `internal`、`cross-boundary`、`workspace`、`external`、`unresolved` 五種 scope；
+- `internal`、`cross-boundary`、`workspace`、`external`、`unresolved` 五種 Scope；
 - 保守的生成程式碼辨識。
 
-靜態依賴保存在 `discovery.dependencies`，不會被提升成 `relations`。source import 是證據，不是已批准的 runtime architecture contract。
+靜態依賴保存在 `discovery.dependencies`，不會被提升成 `relations`。Source Import 是證據，不是已批准的 Runtime Architecture Contract。
 
 `boundaryConfidence` 表示「這個路徑像不像獨立結構邊界」，不是「它有多大機率是 TMS」。達到預設 50,000 檔案上限時，`discovery.truncated` 會設為 `true`，不得把結果視為完整盤點。
 
@@ -98,16 +113,16 @@ node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architec
 ## Classification Suggestions v0.2
 
 ```text
-尚未分類的 candidate
-    ↓ 可重現的 advisory rules
+尚未分類的 Candidate
+    ↓ 可重現的 Advisory Rules
 建議層級 + 支持 + 反向證據 + 未決問題
 ```
 
 Classifier 可以建議 `FMS`、`SCL`、`SMS`、`TMS`、`DMS`、`ROUTER`、`RUNTIME` 或 `UNDETERMINED`。
 
-它只使用可檢查訊號：名稱、路徑、package／Workspace 邊界與 candidate 靜態依賴拓撲。它不執行倉庫程式碼，也不呼叫 AI 模型。
+它只使用可檢查訊號：名稱、路徑、Package／Workspace 邊界與 Candidate 靜態依賴拓撲。它不執行倉庫程式碼，也不呼叫 AI 模型。
 
-每一個建議固定保留：
+每個建議固定保留：
 
 ```json
 {
@@ -121,7 +136,7 @@ Classifier 可以建議 `FMS`、`SCL`、`SMS`、`TMS`、`DMS`、`ROUTER`、`RUNT
 }
 ```
 
-`supportScore` 是規則支持程度，不是正確機率。掃描被截斷時，所有建議一律降為 `low`。Repository root 與 `src` 等聚合邊界固定保持 `UNDETERMINED`。
+`supportScore` 是規則支持程度，不是正確機率。掃描被截斷時，所有建議一律降為 `low`。Repository Root 與 `src` 等聚合邊界固定保持 `UNDETERMINED`。
 
 完整規格見 [`spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)。
 
@@ -134,7 +149,7 @@ Candidate
   → 受阻塞的契約草稿
   → 契約補完
   → 獨立最終批准
-  → Module manifest 輸出
+  → Module Manifest 輸出
 ```
 
 建立審查紀錄：
@@ -149,9 +164,9 @@ node dist/cli.js review-candidate . \
   --out exporter-review.json
 ```
 
-核准後產生的 `contractDraft` 會刻意保留 `TODO`。只要仍有 TODO、未解除的審查條件、被截斷的 Scanner、缺少 maintainer、entry、TMS activation、failure modes、validation 或 tests，升格就會失敗。
+核准後產生的 `contractDraft` 會刻意保留 `TODO`。只要仍有 TODO、未解除的審查條件、被截斷的 Scanner、缺少 Maintainer、Entry、TMS Activation、Failure Modes、Validation 或 Tests，升格就會失敗。
 
-補完契約後，由不同的批准者輸出 manifest：
+補完契約後，由不同批准者輸出 Manifest：
 
 ```bash
 node dist/cli.js promote-candidate exporter-review.json \
@@ -160,7 +175,7 @@ node dist/cli.js promote-candidate exporter-review.json \
   --out TMS/exporter/module.yaml
 ```
 
-升格命令會重新計算 blockers、驗證 `module.schema.json`、在 `metadata.promotion` 保存來源鏈，並拒絕覆寫既有檔案。它不會修改 `mssp.yaml`、自動註冊模組、建立 runtime relation 或執行 candidate 程式碼。
+升格命令會重新計算 Blockers、驗證 `module.schema.json`、在 `metadata.promotion` 保存來源鏈，並拒絕覆寫既有檔案。它不會修改 `mssp.yaml`、自動註冊模組、建立 Runtime Relation 或執行 Candidate 程式碼。
 
 ```text
 Suggestion ≠ Review Decision
@@ -171,6 +186,59 @@ Manifest Emission ≠ Project Registration
 
 中文詳細說明見 [`docs/candidate-promotion.zh-TW.md`](docs/candidate-promotion.zh-TW.md)。
 
+## 架構漂移報告 v0.2
+
+```text
+Canonical FMS Records
+        ↕
+Module Manifests
+        ↕
+Configured Layer Source Ownership
+```
+
+執行：
+
+```bash
+node dist/cli.js drift examples/hello-mssp \
+  --revision HEAD \
+  --max-files 10000 \
+  --out architecture-drift.json
+```
+
+報告會檢查：
+
+- 三份 Canonical FMS 文件是否存在；
+- `FMS/01_MODULE_INDEX.md` 是否具有可解析的 `ID`／`Layer` 表格；
+- FMS 是否遺漏已宣告模組，或保留已不存在模組；
+- FMS 與 Manifest 是否對同一模組宣告不同層級；
+- FMS 是否重複列出同一模組；
+- 可執行原始碼是否落在唯一的 Module Manifest 邊界內；
+- FMS／SCL 是否出現可執行原始碼；
+- 有界盤點是否被截斷。
+
+每份報告固定保留：
+
+```json
+{
+  "analysis": {
+    "mode": "static-conservative",
+    "semanticEquivalence": false,
+    "autoMutation": false
+  }
+}
+```
+
+Finding 明確區分：
+
+```text
+drift         已觀測到結構不一致
+indeterminate 現有證據不足，不能宣稱一致
+```
+
+被截斷的盤點、只有自由文字而無可解析表格的 FMS，都不能被當成一致性證明。Analyzer 不會自動修復檔案、註冊模組、推斷語義等價或建立 Runtime Relation。
+
+中文詳細說明見 [`docs/architecture-drift.zh-TW.md`](docs/architecture-drift.zh-TW.md)。
+
 ## 如何把既有專案改成 MSSP
 
 1. 執行 `mssp scan` 建立結構與依賴證據盤點。
@@ -178,11 +246,12 @@ Manifest Emission ≠ Project Registration
 3. 審查支持、反向證據、替代層級與未決問題。
 4. 用 `mssp review-candidate` 記錄候選決策。
 5. 補完已核准的契約草稿，取得獨立批准後執行 `mssp promote-candidate`。
-6. 透過一般架構變更把輸出的 manifest 註冊進 `mssp.yaml`。
+6. 透過一般架構變更把輸出的 Manifest 註冊進 `mssp.yaml`。
 7. 維護 FMS 系統敘事、模組索引與架構說明。
-8. 加入 SCL 變更契約與 DMS 診斷契約。
-9. 在 CI 執行 `mssp lint` 與 `mssp island`。
-10. 相容性改變時更新 MSSP-VT `changeImpact`。
+8. 在架構變更後執行 `mssp drift`，處理 Drift 或 Indeterminate 證據。
+9. 加入 SCL 變更契約與 DMS 診斷契約。
+10. 在 CI 執行 `mssp lint` 與 `mssp island`。
+11. 相容性改變時更新 MSSP-VT `changeImpact`。
 
 ## 模組契約範例
 
@@ -250,21 +319,22 @@ MSSP = 架構組織、能力定位、子集治理、系統導航
 EML  = 語義表達、壓縮、可執行語言工具鏈
 ```
 
-未來 `@eml/mssp-adapter` 應將 EML AST、CTS 與 trace 轉換為 Intermediate Model 與 Diagnostic Protocol；MSSP Core 本身不得依賴 EML。
+未來 `@eml/mssp-adapter` 應將 EML AST、CTS 與 Trace 轉換為 Intermediate Model 與 Diagnostic Protocol；MSSP Core 本身不得依賴 EML。
 
 ## GitHub 實踐規則
 
 - 架構變更 PR 必須審查 FMS。
-- 每個 TMS 必須有獨立 manifest、權限、失敗模式、驗證與測試。
-- CI 必須執行結構 lint、孤島測試、分類與審查報告生成。
-- Classification suggestion 不得直接成為正式 module declaration。
-- Review approval 不得取代契約補完與獨立最終批准。
+- 每個 TMS 必須有獨立 Manifest、權限、失敗模式、驗證與測試。
+- CI 必須執行結構 Lint、孤島測試、分類、審查報告與 Drift Report。
+- Classification Suggestion 不得直接成為正式 Module Declaration。
+- Review Approval 不得取代契約補完與獨立最終批准。
 - Agent 不得同時提出、審查並批准自己的高風險變更。
+- `consistent` 不得被解讀為語義或 Runtime 等價。
 - DMS 不得只回覆「完成」，必須留下可驗證狀態。
 
 ## 目前狀態
 
-`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 已完成 Diagnostic Protocol、Intermediate Model、Scanner 基礎層、`.gitignore` 證據、Workspace 發現、靜態依賴 scope、生成檔過濾、有證據的層級分類建議，以及受治理的 candidate 審查／升格流程。尚未完成 Tree-sitter／編譯器等級解析、FMS／程式碼漂移及 Git diff impact inference。
+`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 已完成 Diagnostic Protocol、Intermediate Model、Scanner 基礎層、`.gitignore` 證據、Workspace 發現、靜態依賴 Scope、生成檔過濾、有證據的層級分類建議、受治理的 Candidate 審查／升格流程，以及保守的 FMS／程式碼結構漂移分析。尚未完成 Tree-sitter／編譯器等級解析與 Git Diff Impact Inference。
 
 ## 授權
 
