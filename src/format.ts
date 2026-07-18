@@ -1,13 +1,18 @@
 import { relative } from "node:path";
+import { getCanonicalDiagnosticCode } from "./diagnostics.js";
 import type { Diagnostic, LoadedProject, ValidationReport } from "./types.js";
 
 export function formatDiagnostic(diagnostic: Diagnostic, root?: string): string {
-  const icon = diagnostic.level === "error" ? "ERROR" : "WARN";
+  const icon = diagnostic.level === "error"
+    ? "ERROR"
+    : diagnostic.level === "warning"
+      ? "WARN"
+      : "INFO";
   const location = diagnostic.file
     ? ` ${root ? relative(root, diagnostic.file) : diagnostic.file}`
     : "";
   const module = diagnostic.moduleId ? ` [${diagnostic.moduleId}]` : "";
-  return `${icon} ${diagnostic.code}${module}${location}: ${diagnostic.message}`;
+  return `${icon} ${getCanonicalDiagnosticCode(diagnostic.code)}${module}${location}: ${diagnostic.message}`;
 }
 
 export function formatValidationReport(report: ValidationReport): string {
@@ -18,7 +23,8 @@ export function formatValidationReport(report: ValidationReport): string {
   if (lines.length === 0) lines.push("OK MSSP validation passed with no diagnostics.");
   const errors = report.diagnostics.filter((d) => d.level === "error").length;
   const warnings = report.diagnostics.filter((d) => d.level === "warning").length;
-  lines.push(`Summary: ${errors} error(s), ${warnings} warning(s).`);
+  const info = report.diagnostics.filter((d) => d.level === "info").length;
+  lines.push(`Summary: ${errors} error(s), ${warnings} warning(s), ${info} info message(s).`);
   return `${lines.join("\n")}\n`;
 }
 
