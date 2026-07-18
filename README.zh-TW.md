@@ -31,6 +31,7 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 欄
 - `mssp island`：執行 TMS 孤島規則檢查。
 - `mssp model`：從 manifest 輸出可重現、語言無關的 Intermediate Model。
 - `mssp scan`：掃描既有倉庫，輸出有證據、尚未分類的結構候選。
+- `mssp classify`：輸出有證據、必須審查的層級建議，不自動升格候選。
 - `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
 - `mssp explain`：向人類與 Agent 輸出簡潔架構清單。
 - `lint --json` 與 `island --json` 輸出 MSSP Diagnostic Protocol v0.2。
@@ -38,7 +39,7 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 欄
 - 中介模型具有可攜來源、正式關係與 Scanner 證據。
 - GitHub Actions、PR 架構審查與完整參考專案。
 
-Scanner 不自動把候選判定成 SMS 或 TMS。它先整理結構與依賴證據，再交給後續受治理的分類流程。
+Scanner 不分配 MSSP 層級。Classifier 只輸出假說、支持證據、反向證據與未決問題，並固定保留 `autoPromotion: false` 與 `review-required`。
 
 ## 五分鐘開始
 
@@ -50,6 +51,7 @@ node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
 node dist/cli.js scan . --revision HEAD --out /tmp/repository-scan.json
+node dist/cli.js classify . --revision HEAD --out /tmp/classification-suggestions.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -61,6 +63,7 @@ npm run mssp -- lint examples/hello-mssp
 npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
+npm run mssp -- classify . --revision HEAD --max-files 10000
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
@@ -69,6 +72,8 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 診斷 JSON 遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。外部工具應讀取 `diagnostics[].code`；過渡期舊代碼保留在 `diagnostics[].legacyCode`。
 
 `model` 與 `scan` 都輸出 [`MSSP Intermediate Model v0.2`](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)。
+
+`classify` 輸出獨立的 [`MSSP Classification Suggestions v0.2`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) 報告。
 
 ## Repository Scanner v0.2
 
@@ -109,18 +114,64 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 
 完整規格見 [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-REPOSITORY-SCANNER-v0.2.md)，中文說明見 [`docs/repository-scanner.zh-TW.md`](docs/repository-scanner.zh-TW.md)。
 
+## Classification Suggestions v0.2
+
+```text
+尚未分類的 candidate
+    ↓ 可重現的 advisory rules
+建議層級 + 支持 + 反向證據 + 未決問題
+    ↓ 分離的審查與宣告
+正式 MSSP module 或被拒絕的假說
+```
+
+Classifier 可以建議：
+
+```text
+FMS
+SCL
+SMS
+TMS
+DMS
+ROUTER
+RUNTIME
+UNDETERMINED
+```
+
+它只使用可檢查訊號：名稱、路徑、package／Workspace 邊界與 candidate 靜態依賴拓撲。它不執行倉庫程式碼，也不呼叫 AI 模型。
+
+每一個建議固定保留：
+
+```json
+{
+  "status": "review-required",
+  "confidence": "low | medium | high",
+  "supportScore": 0.0,
+  "alternativeLayers": [],
+  "supportingEvidence": [],
+  "counterEvidence": [],
+  "unresolvedQuestions": []
+}
+```
+
+`supportScore` 是規則支持程度，不是正確機率。掃描被截斷時，所有建議一律降為 `low`。Repository root 與 `src` 等 aggregate source root 固定保持 `UNDETERMINED`。
+
+分類報告不能修改 candidate、建立 module declaration、建立 runtime relation、批准自己的建議或跳過架構審查。
+
+完整規格見 [`spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)，中文說明見 [`docs/classification-suggestions.zh-TW.md`](docs/classification-suggestions.zh-TW.md)。
+
 ## 如何把既有專案改成 MSSP
 
 1. 執行 `mssp scan` 建立結構與依賴證據盤點。
-2. 審查 candidates，不接受沒有證據的自動層級判定。
-3. 在根目錄加入 `mssp.yaml`。
-4. 建立 `FMS/00_SYSTEM_NARRATIVE.md`、`FMS/01_MODULE_INDEX.md`、`FMS/02_ARCHITECTURE_NOTES.md`。
-5. 把任務閉環不可缺少的穩定能力宣告成 SMS。
-6. 把按需載入、可替換、可獨立測試的能力宣告成 TMS，並寫明啟動條件、權限、失敗模式、驗證與代表測試。
-7. 用 SCL 描述可變性與權限，用 DMS 描述診斷輸出。
-8. 在 CI 執行 `mssp lint` 與 `mssp island`。
-9. 改變系統本體、模組邊界或依賴方向的 PR 必須審查 FMS。
-10. 相容性改變時更新 MSSP-VT `changeImpact`。
+2. 執行 `mssp classify` 產生可審查假說，不是正式宣告。
+3. 審查支持、反向證據、替代層級與未決問題。
+4. 在根目錄加入 `mssp.yaml`。
+5. 建立 `FMS/00_SYSTEM_NARRATIVE.md`、`FMS/01_MODULE_INDEX.md`、`FMS/02_ARCHITECTURE_NOTES.md`。
+6. 把任務閉環不可缺少的穩定能力宣告成 SMS。
+7. 把按需載入、可替換、可獨立測試的能力宣告成 TMS，並寫明啟動條件、權限、失敗模式、驗證與代表測試。
+8. 用 SCL 描述可變性與權限，用 DMS 描述診斷輸出。
+9. 在 CI 執行 `mssp lint` 與 `mssp island`。
+10. 改變系統本體、模組邊界或依賴方向的 PR 必須審查 FMS。
+11. 相容性改變時更新 MSSP-VT `changeImpact`。
 
 ## 模組契約範例
 
@@ -196,15 +247,16 @@ EML  = 語義表達、壓縮、可執行語言工具鏈
 
 - 架構變更 PR 必須審查 FMS。
 - 每個 TMS 必須有獨立 manifest、權限、失敗模式、驗證與測試。
-- CI 必須執行結構 lint 與孤島測試。
+- CI 必須執行結構 lint、孤島測試與分類報告生成。
 - 不可把所有模組都標為 SMS。
 - 不可在 FMS 放入具體可執行流程。
 - Agent 不得同時提出、執行、驗證並自行批准高風險變更。
 - DMS 不得只回覆「完成」，必須留下可驗證狀態。
+- Classification suggestion 不得直接成為正式 module declaration。
 
 ## 目前狀態
 
-`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 已完成 Diagnostic Protocol、Intermediate Model、Scanner 基礎層、`.gitignore` 證據、Workspace 發現、靜態依賴 scope 與生成檔過濾。尚未完成 Tree-sitter／編譯器等級解析、有證據的層級分類、candidate 升格、FMS／程式碼漂移及 Git diff impact inference。
+`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 已完成 Diagnostic Protocol、Intermediate Model、Scanner 基礎層、`.gitignore` 證據、Workspace 發現、靜態依賴 scope、生成檔過濾與有證據的層級分類建議。尚未完成 Tree-sitter／編譯器等級解析、candidate 升格、FMS／程式碼漂移及 Git diff impact inference。
 
 ## 授權
 
