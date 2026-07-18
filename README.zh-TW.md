@@ -36,10 +36,11 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 進
 - `mssp promote-candidate`：在契約補完及獨立批准後輸出 module manifest。
 - `mssp drift`：比較 Canonical FMS、manifest 與有界原始碼所有權。
 - `mssp impact`：把明確 Git 比較映射為直接與 MSSP-VT 傳播影響。
+- `mssp viz`：輸出唯讀 Visualization Model 或自包含互動式 HTML 架構圖。
 - `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
 - `mssp explain`：輸出簡潔架構清單。
 
-Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契約完成。Manifest 輸出不等於模組註冊。Drift 與 Impact 報告都不能修改或批准自己所描述的架構。
+Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契約完成。Manifest 輸出不等於模組註冊。Drift 與 Impact 報告都不能修改或批准自己所描述的架構。Visualization 也不會替畫面中的候選分類或升格。
 
 ## 五分鐘開始
 
@@ -66,6 +67,10 @@ node dist/cli.js impact /tmp/my-mssp-project \
   --head HEAD \
   --revision HEAD \
   --out /tmp/git-diff-impact.json
+node dist/cli.js viz /tmp/my-mssp-project \
+  --revision HEAD \
+  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
+  --out /tmp/architecture.html
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project \
   --format mermaid \
@@ -81,6 +86,7 @@ npm run mssp -- scan . --revision HEAD --max-files 10000
 npm run mssp -- classify . --revision HEAD --max-files 10000
 npm run mssp -- drift examples/hello-mssp --revision HEAD --max-files 10000
 npm run mssp -- impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD
+npm run mssp -- viz examples/hello-mssp --format html --revision HEAD --out architecture.html
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
@@ -94,6 +100,7 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 - [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)
 - [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
 - [MSSP Git Diff Impact Analysis v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
+- [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
 
 診斷 JSON 消費者應讀取 `diagnostics[].code`；v0.1 內部代碼保留在 `diagnostics[].legacyCode`。
 
@@ -230,6 +237,51 @@ B.compatibility.modules contains A
 
 中文指南：[Git Diff Impact](docs/git-diff-impact.zh-TW.md)。
 
+## 互動式架構視覺化
+
+```text
+Intermediate Model
+       ↓ 可重現唯讀投影
+Visualization Model
+       ↓ 自包含 renderer
+可搜尋的分層架構圖
+```
+
+執行：
+
+```bash
+node dist/cli.js viz examples/hello-mssp \
+  --format html \
+  --revision HEAD \
+  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
+  --out architecture.html
+```
+
+HTML 將 CSS、JavaScript 與資料放在單一檔案內，不載入 CDN、外部字型、分析服務或 runtime library。畫面支援層級篩選、搜尋、節點詳細資料、關係線與選配的原始碼連結。
+
+Visualization Model 明確區分：
+
+```text
+module     → 已聲明 MSSP layer
+candidate  → UNCLASSIFIED
+reference  → UNRESOLVED
+```
+
+每份模型固定保留：
+
+```json
+{
+  "invariants": {
+    "readOnly": true,
+    "autoMutation": false
+  }
+}
+```
+
+看見 candidate 不等於已批准；看見 relation 也不等於已執行或已證明相容。
+
+中文指南：[Visualization](docs/visualization.zh-TW.md)。
+
 ## Module contract 範例
 
 ```yaml
@@ -276,7 +328,7 @@ MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
                               ↓
                   MSSP Intermediate Model
                               ↓
-Validator / Graph / IDE / Agent / Drift / Impact Analysis
+Validator / Graph / Viz / IDE / Agent / Drift / Impact Analysis
 ```
 
 中介模型區分已批准的 `modules`、尚未分類的 `candidates`，以及正式 `relations` 與 Scanner 的 `discovery.dependencies`。
@@ -304,6 +356,8 @@ docs/                    採用、協議、Roadmap 與研究指南
 ## 目前狀態
 
 `v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 的主要垂直切片已實作：Diagnostic Protocol、Intermediate Model、Scanner、靜態依賴證據、Advisory Classification、受治理升格、結構漂移，以及 Git Diff Impact Analysis。
+
+v0.3 Visualization Foundation 也已完成：可重現 Visualization Model、原始碼導覽、自包含互動式 HTML、公開 API、Schema、測試與 CI Artifact。EML、Python、Rust、Godot 與 Agent Skill adapters 尚未實作。
 
 編譯器等級 AST 依賴抽取、完整語言 alias 解析、完全等價的 Git ignore 行為、生成來源追蹤、patch hunk／symbol-level impact，以及自動 Semantic Version 選擇，仍不屬於目前 Reference Implementation。
 
