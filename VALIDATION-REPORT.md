@@ -8,16 +8,17 @@ Date: 2026-07-18
 - Node.js 22
 - TypeScript 5.x
 - Vitest 3.x
+- Git 2.54
 - Public `registry.npmjs.org` dependency resolution
 
 ## Automated checks
 
-The Draft PR is validated from a clean checkout of the pull-request merge ref.
+The Draft PR is validated from a clean checkout of the pull-request merge ref with complete Git history available to the impact analyzer.
 
 ```text
 npm ci --no-audit --no-fund                              PASS
 npm run typecheck                                        PASS
-npm test                                                 PASS — 10 test files, 35 tests
+npm test                                                 PASS — 11 test files, 40 tests
 npm run build                                            PASS
 mssp lint examples/hello-mssp                            PASS
 mssp lint examples/hello-mssp --json                     PASS
@@ -28,11 +29,12 @@ mssp scan . --revision <sha> --max-files 10000           PASS
 mssp classify . --revision <sha> --max-files 10000       PASS
 mssp review-candidate . ... --out promotion-review.json  PASS
 mssp drift examples/hello-mssp ... --out architecture-drift.json PASS
+mssp impact examples/hello-mssp --base HEAD^1 --head HEAD ... PASS
 mssp graph examples/hello-mssp                           PASS
 validation artifact upload                              PASS
 ```
 
-The architecture-drift validation run was GitHub Actions run `29630624141` on head commit `333397414f7d484b43ecc8cadbb8e39595cf8694`.
+The Git-diff-impact validation run was GitHub Actions run `29631254627` on head commit `17d0618750f104b0ceef01dde39f3dbd9c7bdffa`.
 
 The validated artifact contains:
 
@@ -41,14 +43,15 @@ architecture-drift.json
 architecture.mmd
 classification-suggestions.json
 diagnostics.json
+git-diff-impact.json
 island-diagnostics.json
 intermediate-model.json
 promotion-review.json
 repository-scan.json
 ```
 
-Artifact ID: `8425324629`  
-Artifact digest: `sha256:369cfc2d108d56952096bbb003d145eb270de660923993512e20c57d54f70ac9`
+Artifact ID: `8425531388`  
+Artifact digest: `sha256:d44cb076ac560c1cb68806408806af5b3e9102821e6c2afa3889c5308c13d70e`
 
 ## Protocol and model conformance
 
@@ -58,14 +61,16 @@ Artifact digest: `sha256:369cfc2d108d56952096bbb003d145eb270de660923993512e20c57
 - Classification reports validate against `schemas/classification-suggestions.schema.json`.
 - Candidate promotion reviews validate against `schemas/promotion-review.schema.json`.
 - Architecture drift reports validate against `schemas/architecture-drift.schema.json`.
+- Git diff impact reports validate against `schemas/git-diff-impact.schema.json`.
 - Manifest models emit declared `modules` and an empty `candidates` array.
 - Scanner models emit unclassified `candidates`, discovery evidence, and no invented MSSP layer assignments.
 - Scanner static dependencies remain in `discovery.dependencies`; normative `relations` remain empty.
 - Classification reports preserve `mode: advisory`, `autoPromotion: false`, and `status: review-required`.
 - Promotion reviews preserve named reviewer identity, rationale, source snapshots, explicit decision, blockers, and `requiresIndependentApproval: true`.
 - Drift reports preserve `mode: static-conservative`, `semanticEquivalence: false`, and `autoMutation: false`.
-- Model, scanner, classifier, fixed-input review, and drift output are deterministic for identical inputs and options.
-- Source references are repository-relative and may include an explicit revision.
+- Impact reports preserve `mode: static-conservative`, `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`.
+- Model, scanner, classifier, fixed-input review, drift, and impact output are deterministic for identical inputs and options.
+- Source and changed-file references are portable and project-relative where applicable.
 
 ## Verified scanner evidence
 
@@ -124,6 +129,22 @@ Artifact digest: `sha256:369cfc2d108d56952096bbb003d145eb270de660923993512e20c57
 - `consistent` means structural consistency only; the report explicitly denies semantic-equivalence and automatic-mutation claims.
 - Drift analysis does not repair FMS, mutate manifests, register modules, or create runtime relations.
 
+## Verified Git diff impact behavior
+
+- NUL-delimited Git name-status records and rename records are parsed deterministically.
+- Git paths are converted to MSSP-project-relative paths while files wholly outside the project are counted separately.
+- Direct changes distinguish module manifests, declared entries, and other files within module boundaries.
+- A direct SMS change propagates through `changeImpact.affects`, `changeImpact.affectedBy`, `requires.modules`, and `compatibility.modules`.
+- Propagation is transitive and cycle-safe.
+- FMS and SCL changes produce explicit review requirements without claiming semantic compatibility.
+- Direct module changes require module-contract, version, and test review.
+- Transitively impacted modules require compatibility and test review.
+- Impacted TMS modules require island-test review.
+- Unowned or overlapping executable-layer changes preserve `indeterminate` state.
+- Unknown MSSP-VT targets, removed manifest or entry paths, and generated-source provenance gaps preserve `indeterminate` state.
+- `impact-detected` means review scope is known; it does not mean incompatibility.
+- The analyzer does not select a semantic-version increment, mutate declarations, approve a pull request, or execute repository code.
+
 ## Verified architecture boundaries
 
 - Executable source inside FMS is rejected.
@@ -137,6 +158,7 @@ Artifact digest: `sha256:369cfc2d108d56952096bbb003d145eb270de660923993512e20c57
 - Classification suggestions cannot approve or promote themselves.
 - Classification review and final promotion approval are separate roles.
 - Drift findings cannot mutate the architecture they describe.
+- Impact findings cannot approve, version, or mutate the change they describe.
 
 ## Package portability
 
@@ -148,6 +170,9 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No language-specific alias or complete build-graph resolution.
 - No complete Git ignore equivalence.
 - No generated-source provenance.
+- No patch-hunk or symbol-level Git impact analysis.
+- No old-versus-new manifest semantic comparison.
+- No automatic semantic-version selection.
 - No interactive contract-draft editor or automatic condition-resolution ledger.
 - No automatic, governed registration of an emitted manifest into `mssp.yaml`.
 - No cryptographic review signatures or external identity verification.
@@ -155,7 +180,6 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No runtime-trace or deployment-topology drift comparison.
 - No historical or cross-version drift baseline.
 - No semantic ingestion of activation, state ownership, deployment topology, rollback, or historical change data.
-- No Git diff impact inference.
 - No runtime instrumentation or DMS event transport protocol.
 - No visual web editor.
 - No AISMBI/MCL implementation.
