@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "0.3",
+  "kind": "godot-mssp-export",
+  "project": {
+    "id": "example.godot-system",
+    "name": "Example Godot System",
+    "version": "1.2.0",
+    "description": "Reference Godot semantic export for the MSSP adapter.",
+    "sourceUri": "project.godot",
+    "engineVersion": "4.5",
+    "renderer": "gl_compatibility",
+    "mainScene": "scenes/world.tscn",
+    "projectFeatures": ["4.5", "GL Compatibility"],
+    "scriptingLanguages": ["GDScript"],
+    "metadata": {
+      "exporter": "godot-editor-fixture"
+    }
+  },
+  "layers": [
+    {
+      "id": "SMS",
+      "path": "scenes",
+      "sourceUri": "project.godot"
+    },
+    {
+      "id": "TMS",
+      "path": "addons/dialogue",
+      "sourceUri": "project.godot"
+    }
+  ],
+  "policies": [
+    {
+      "id": "godot.tool-scripts",
+      "value": "explicit-contract-only",
+      "sourceUri": "project.godot"
+    }
+  ],
+  "components": [
+    {
+      "id": "core.world",
+      "name": "World Scene",
+      "godotKind": "scene",
+      "godotIdentity": "res://scenes/world.tscn",
+      "sourceUri": "scenes/world.tscn",
+      "scenePath": "res://scenes/world.tscn",
+      "scriptPath": "res://scripts/world.gd",
+      "className": "WorldController",
+      "baseType": "Node",
+      "nodeType": "Node",
+      "signals": ["world_ready"],
+      "groups": ["world"],
+      "purpose": "Provide the stable world capability.",
+      "declaration": {
+        "version": "1.1.0",
+        "layer": "SMS",
+        "purpose": "Provide the stable world capability.",
+        "entry": "res://scenes/world.tscn",
+        "activation": ["project main scene"],
+        "inputs": ["world-request"],
+        "outputs": ["world-state"],
+        "requirements": {
+          "modules": [],
+          "tools": [],
+          "data": ["world-resources"]
+        },
+        "permissions": {
+          "may": ["instantiate-world-nodes", "read-world-resources"],
+          "mayNot": ["network", "write-project-files"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["world-scene-load-failed"],
+        "validation": ["world scene enters the tree"],
+        "tests": ["loads the minimal world scene"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {}
+        },
+        "changeImpact": {
+          "affects": ["plugin.dialogue"],
+          "affectedBy": [],
+          "notes": ["World signal changes require dialogue review."]
+        },
+        "maintainer": "world-team"
+      }
+    },
+    {
+      "id": "plugin.dialogue",
+      "name": "Dialogue Addon",
+      "godotKind": "addon",
+      "godotIdentity": "res://addons/dialogue/plugin.cfg#Dialogue",
+      "sourceUri": "addons/dialogue/plugin.gd",
+      "scriptPath": "res://addons/dialogue/plugin.gd",
+      "className": "DialoguePlugin",
+      "baseType": "EditorPlugin",
+      "pluginName": "Dialogue",
+      "pluginEnabled": true,
+      "signals": ["dialogue_finished", "dialogue_started"],
+      "groups": ["dialogue"],
+      "purpose": "Provide an optional dialogue capability.",
+      "declaration": {
+        "version": "0.8.0",
+        "layer": "TMS",
+        "purpose": "Provide an optional dialogue capability.",
+        "entry": "res://addons/dialogue/plugin.gd",
+        "activation": ["dialogue capability requested"],
+        "inputs": ["dialogue-request", "world-state"],
+        "outputs": ["dialogue-result"],
+        "requirements": {
+          "modules": ["core.world"],
+          "tools": [],
+          "data": ["dialogue-resources"]
+        },
+        "permissions": {
+          "may": ["read-world-state", "instantiate-dialogue-ui"],
+          "mayNot": ["network", "write-project-files"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["dialogue-resource-invalid"],
+        "validation": ["dialogue exits without orphan nodes"],
+        "tests": ["fails safely on invalid dialogue resources", "runs a minimal dialogue"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {
+            "core.world": ">=1 <2"
+          }
+        },
+        "changeImpact": {
+          "affects": [],
+          "affectedBy": ["core.world"],
+          "notes": []
+        },
+        "maintainer": "dialogue-team"
+      }
+    },
+    {
+      "id": "experimental.telemetry",
+      "name": "Experimental Telemetry Autoload",
+      "godotKind": "autoload",
+      "godotIdentity": "autoload:Telemetry=res://scripts/telemetry.gd",
+      "sourceUri": "scripts/telemetry.gd",
+      "scriptPath": "res://scripts/telemetry.gd",
+      "className": "Telemetry",
+      "baseType": "Node",
+      "autoloadName": "Telemetry",
+      "signals": ["sample_recorded"],
+      "groups": ["telemetry"],
+      "purpose": "Prototype local telemetry without granting architecture authority.",
+      "candidate": {
+        "path": "scripts/telemetry.gd",
+        "boundaryKind": "source-root",
+        "boundaryConfidence": 0.64,
+        "fileCount": 1,
+        "sourceFileCount": 1,
+        "languages": ["gdscript"]
+      }
+    }
+  ]
+}
