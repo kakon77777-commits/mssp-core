@@ -18,26 +18,25 @@ Rust adapter   ─┘
 
 A producer translates source-specific structures into the Intermediate Model. A consumer operates on the model without requiring knowledge of YAML, EML AST nodes, Python packages, Rust crates, Godot scenes, or a particular repository layout.
 
-The model distinguishes two architectural states:
+The model distinguishes:
 
-- **declared modules**, which already have an MSSP layer and contract;
-- **unclassified candidates**, which have structural evidence but no approved MSSP layer.
-
-This distinction prevents repository discovery from being mistaken for architecture classification.
+- **declared modules**, which have an approved MSSP layer and contract;
+- **unclassified candidates**, which have structural evidence but no approved MSSP layer;
+- **scanner discovery evidence**, which records observations without converting them into architecture declarations.
 
 ## 2. Design requirements
 
 An Intermediate Model document MUST be:
 
 - language-neutral;
-- independent of absolute local file-system paths;
-- deterministic for identical source inputs and options;
+- independent of absolute host paths;
+- deterministic for identical inputs and options;
 - explicit about producer and adapter identity;
-- traceable to source declarations or evidence;
+- traceable to declarations or evidence;
 - serializable as JSON;
 - valid against the normative JSON Schema.
 
-It MUST NOT require a wall-clock generation timestamp. A producer MAY attach a source revision, such as a Git commit SHA, to source references.
+It MUST NOT require a wall-clock generation timestamp. A producer MAY attach an explicit source revision.
 
 ## 3. Top-level envelope
 
@@ -59,7 +58,7 @@ It MUST NOT require a wall-clock generation timestamp. A producer MAY attach a s
 }
 ```
 
-A repository scanner MAY also include:
+A repository scanner includes a `discovery` object:
 
 ```json
 {
@@ -72,61 +71,37 @@ A repository scanner MAY also include:
       "sourceFiles": 0,
       "languages": []
     },
-    "markers": []
+    "markers": [],
+    "ignore": {
+      "files": [],
+      "ignoredFiles": 0,
+      "ignoredDirectories": 0
+    },
+    "generated": {
+      "files": 0,
+      "paths": []
+    },
+    "workspaces": [],
+    "dependencies": []
   }
 }
 ```
 
-### `schemaVersion`
-
-Identifies the Intermediate Model contract, not the source manifest version.
-
-### `generatedBy`
-
-Identifies the implementation and adapter that produced the document.
-
-### `project`
-
-Contains normalized or inferred project identity and its source reference.
-
-### `layers`
-
-Contains configured MSSP layers and source paths. An unclassified repository scan may leave this empty.
-
-### `modules`
-
-Contains approved, normalized MSSP module contracts. Every module has a valid MSSP layer.
-
-### `candidates`
-
-Contains discovered structural boundaries that have not yet been classified as MSSP modules.
-
-### `relations`
-
-Contains explicit graph edges derived from dependency and MSSP-VT declarations. A scanner MUST NOT invent relations without evidence.
-
-### `policies`
-
-Contains normalized project-level policies.
-
-### `discovery`
-
-Contains optional scanner inventory and marker information. Manifest-only producers may omit it.
+Manifest-only producers omit `discovery`.
 
 ## 4. Source references
 
-Every project, layer, module, candidate, relation, and policy is traceable through a source reference:
+Every project, layer, module, candidate, relation, policy, and scanner evidence record is traceable through a source reference:
 
 ```json
 {
-  "kind": "manifest",
-  "uri": "TMS/uppercase/module.mssp.yaml",
-  "format": "yaml",
+  "kind": "scanner",
+  "uri": "packages/exporter/package.json",
+  "format": "json",
+  "adapter": "repository-scanner",
   "revision": "<optional-source-revision>"
 }
 ```
-
-`uri` SHOULD be repository-relative or otherwise portable. Producers MUST NOT emit host-specific absolute paths when a portable path is available.
 
 Supported source kinds are:
 
@@ -135,25 +110,21 @@ Supported source kinds are:
 - `adapter`;
 - `generated`.
 
-Future adapters may attach evidence from multiple sources without changing normalized identity.
+`uri` SHOULD be repository-relative or otherwise portable. Producers MUST NOT expose host-specific absolute paths when a portable path exists.
 
 ## 5. Declared modules
 
 A normalized module includes:
 
-- identity: `id`, `name`, `version`;
-- architecture: `layer`, `purpose`, optional `entry`;
+- identity, version, layer, and purpose;
 - activation, inputs, and outputs;
 - module, tool, and data requirements;
-- allowed and forbidden permissions;
-- risk level and failure modes;
-- validation rules and representative tests;
-- MSSP and module compatibility;
-- MSSP-VT impact relations;
-- maintainer and metadata where declared;
-- source reference and evidence.
+- permissions and risk level;
+- failure modes, validation, and representative tests;
+- compatibility and MSSP-VT impact;
+- source references and evidence.
 
-Array fields are deterministically sorted by the reference manifest adapter. Other adapters MUST document their ordering policy and SHOULD produce deterministic output.
+Declared module dependencies become normative `relations` only because they originate from MSSP contracts.
 
 ## 6. Unclassified candidates
 
@@ -165,7 +136,7 @@ A candidate represents evidence of a possible architectural boundary before clas
   "name": "export-pdf",
   "path": "packages/export-pdf",
   "boundaryKind": "package",
-  "boundaryConfidence": 0.95,
+  "boundaryConfidence": 0.98,
   "status": "unclassified",
   "fileCount": 12,
   "sourceFileCount": 8,
@@ -184,58 +155,120 @@ Candidate boundary kinds are:
 
 | Kind | Meaning |
 |---|---|
-| `repository` | Explicit producer scan boundary |
-| `package` | Boundary supported by a package/project marker |
-| `source-root` | Conventional source root containing source files |
-| `directory` | Source-bearing directory supported by structural convention |
+| `repository` | Explicit scan boundary |
+| `package` | Project/package marker or workspace-supported boundary |
+| `source-root` | Conventional source directory |
+| `directory` | Source-bearing structural directory |
 
-`boundaryConfidence` concerns the existence of a structural boundary only. It MUST NOT be interpreted as confidence in an MSSP layer assignment.
+A candidate has no `layer`. `boundaryConfidence` concerns structural boundaries only and MUST NOT be interpreted as MSSP layer confidence.
 
-A candidate has no `layer`. Promotion to `modules` requires a separate classification or declaration step that supplies an MSSP contract.
+## 7. Discovery inventory and markers
 
-## 7. Discovery metadata
+`discovery.inventory` records deterministic file, source-file, language, and extension counts.
 
-`discovery` is optional and scanner-oriented. It may contain:
+`discovery.markers` records recognized ecosystem files and their boundary paths. A marker is evidence that a package or project boundary may exist; it is not a module declaration.
 
-- explicit root marker `.`;
-- optional source revision;
-- whether the scan was truncated;
-- deterministic ignore rules;
-- total file and source-file counts;
-- language counts and observed extensions;
-- recognized ecosystem markers and their boundary paths.
+Consumers MUST check `discovery.truncated` before treating inventory or dependency evidence as complete.
 
-A consumer MUST check `discovery.truncated` before treating inventory counts as complete.
+## 8. Ignore evidence
 
-## 8. Relations
+`discovery.ignore` records:
+
+- each read `.gitignore` file;
+- its repository-relative base path;
+- normalized non-comment patterns;
+- ignored-file and ignored-directory counts.
+
+Hard-coded dependency, build, cache, and editor exclusions remain in `discovery.ignoredDirectories`.
+
+The reference scanner implements a documented static subset of Git ignore semantics. Consumers MUST NOT infer full Git equivalence from this field.
+
+## 9. Generated-source observations
+
+`discovery.generated` records conservatively recognized generated-source paths.
+
+Generated files remain part of inventory but may be excluded from source-derived architecture evidence. A generated observation does not prove generator provenance.
+
+## 10. Workspace declarations
+
+A workspace record contains:
+
+```json
+{
+  "kind": "npm",
+  "rootPath": ".",
+  "patterns": ["packages/*"],
+  "members": ["packages/exporter"],
+  "source": {
+    "kind": "scanner",
+    "uri": "package.json",
+    "format": "json"
+  }
+}
+```
+
+The v0.2 workspace kinds are `npm`, `pnpm`, and `cargo`.
+
+Workspace membership strengthens structural boundary evidence but does not assign an MSSP layer, deployment unit, runtime relationship, or owner.
+
+## 11. Static dependency evidence
+
+Scanner-derived source references are stored in `discovery.dependencies`, not in normative `relations`.
+
+```json
+{
+  "kind": "static-import",
+  "scope": "workspace",
+  "from": "candidate.src",
+  "to": "candidate.packages.exporter",
+  "targetKind": "candidate",
+  "specifiers": ["@example/exporter"],
+  "sourceFiles": ["src/index.ts"],
+  "occurrences": 1,
+  "evidence": []
+}
+```
+
+Scopes are:
+
+| Scope | Meaning |
+|---|---|
+| `internal` | Resolved inside the same candidate |
+| `cross-boundary` | Relative source reference crosses candidates |
+| `workspace` | Package specifier maps to a workspace member |
+| `external` | Non-local target has no workspace candidate |
+| `unresolved` | Local-looking target cannot be resolved |
+
+Static dependency evidence MUST NOT be interpreted as a declared runtime dependency. Compiler, build, conditional-load, generated, or runtime behavior may differ.
+
+## 12. Normative relations
 
 The v0.2 relation kinds are:
 
 | Kind | Meaning |
 |---|---|
-| `requires` | Runtime module dependency |
-| `affects` | MSSP-VT declaration that the source module affects the target |
-| `affected-by` | MSSP-VT declaration that the source module is affected by the target |
+| `requires` | Declared runtime module dependency |
+| `affects` | MSSP-VT declaration that the source affects the target |
+| `affected-by` | MSSP-VT declaration that the source is affected by the target |
 
-Each relation contains source evidence. Consumers MUST NOT infer that an MSSP-VT relation is a runtime dependency.
+A repository scanner leaves `relations` empty until a governed declaration or later specification explicitly authorizes promotion.
 
-Scanner candidates do not automatically create relations. Structural co-location is not a runtime dependency.
+## 13. Evidence
 
-## 9. Evidence
-
-Evidence records explain why a normalized statement or candidate exists.
+Evidence records explain why a statement exists.
 
 ```json
 {
   "kind": "dependency",
-  "message": "plugin.uppercase declares a runtime dependency on core.echo.",
+  "message": "Static source references connect candidate.src to candidate.packages.exporter.",
   "source": {
-    "kind": "manifest",
-    "uri": "TMS/uppercase/module.mssp.yaml",
-    "format": "yaml"
+    "kind": "scanner",
+    "uri": "src/index.ts",
+    "format": "source"
   },
   "data": {
-    "field": "requires.modules"
+    "parser": "static-regex-v0.2",
+    "scope": "workspace"
   }
 }
 ```
@@ -250,32 +283,26 @@ Supported evidence kinds are:
 - `test`;
 - `other`.
 
-A scanner or AI-assisted classifier MUST use `inference` evidence for non-declared conclusions and SHOULD include machine-readable supporting observations. Confidence scores alone are not evidence.
+Confidence scores alone are not evidence. AI-assisted conclusions MUST include inspectable supporting observations and remain distinguishable from declarations.
 
-## 10. Determinism
+## 14. Determinism
 
-For identical input and options, a conforming producer SHOULD emit byte-stable JSON after applying the same JSON formatting.
+For identical input and options, a conforming producer SHOULD emit byte-stable JSON after the same formatting.
 
 The reference producers guarantee:
 
 - no generation timestamp;
 - repository-relative source URIs;
-- sorted modules and candidates;
-- sorted module arrays;
-- sorted compatibility maps;
-- sorted relations;
-- sorted policies and layers;
-- sorted discovery markers and language inventory.
+- sorted modules, candidates, relations, policies, and layers;
+- sorted discovery markers, languages, ignore files, workspaces, dependencies, source files, and specifiers;
+- revision changes only when explicitly supplied.
 
-A revision changes output only when explicitly supplied.
-
-## 11. CLI
+## 15. CLI
 
 Manifest adapter:
 
 ```bash
 mssp model .
-mssp model . --revision <git-sha>
 mssp model . --revision <git-sha> --out mssp-model.json
 ```
 
@@ -287,46 +314,38 @@ mssp scan . --revision <git-sha>
 mssp scan . --max-files 10000 --out repository-scan.json
 ```
 
-Both commands export JSON that validates against `schemas/intermediate-model.schema.json`.
+Both outputs validate against `schemas/intermediate-model.schema.json`.
 
-## 12. Consumer boundary
-
-New architecture consumers SHOULD read the Intermediate Model rather than parse source manifests or scanner-specific output directly.
-
-The reference graph generator follows this rule for declared modules:
-
-```text
-LoadedProject
-    ↓ manifest adapter
-MSSP Intermediate Model
-    ↓ graph projection
-MSSP Graph / Mermaid
-```
-
-Repository discovery follows:
+## 16. Consumer boundary
 
 ```text
 Repository
     ↓ repository scanner
-Intermediate Model with candidates
-    ↓ classification / declaration
-Intermediate Model with modules
-    ↓ consumers
+Intermediate Model with candidates and discovery evidence
+    ↓ governed classification / declaration
+Intermediate Model with modules and normative relations
+    ↓ graph / validation / governance / IDE / Agent
 ```
 
-Graph and governance consumers MUST distinguish `modules` from `candidates`.
+Consumers MUST distinguish:
 
-## 13. Compatibility
+- candidate from module;
+- static dependency evidence from runtime relation;
+- inferred identity from declared identity;
+- generated-source observation from provenance.
+
+## 17. Compatibility
 
 During `0.x`, fields may evolve with explicit migration notes. The following meanings must not silently change within v0.2:
 
 - `modules` are classified MSSP modules;
 - `candidates` are unclassified structural boundaries;
 - candidates do not possess an MSSP layer;
-- `requires` is a runtime module dependency;
-- `affects` and `affected-by` are MSSP-VT impact declarations;
-- source URIs identify evidence locations, not executable imports;
-- `generatedBy.adapter` identifies the producer adapter;
-- `schemaVersion` identifies this model contract.
+- `discovery.dependencies` are scanner evidence, not runtime contracts;
+- `requires` is a declared runtime module dependency;
+- `affects` and `affected-by` are MSSP-VT declarations;
+- source URIs identify evidence locations;
+- `generatedBy.adapter` identifies the producer;
+- `schemaVersion` identifies the model contract.
 
-A model consumer MUST reject unsupported major or incompatible schema versions rather than guessing.
+A consumer MUST reject unsupported or incompatible model versions rather than guessing.
