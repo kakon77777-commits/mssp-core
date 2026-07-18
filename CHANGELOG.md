@@ -49,8 +49,12 @@
 - Added deterministic layered module, candidate, and unresolved-reference nodes with `requires`, `affects`, and `affected-by` edges.
 - Added optional source navigation through `--source-base` while preserving repository-relative source identity.
 - Added a self-contained interactive HTML renderer with search, layer filters, node inspection, relation drawing, and no external runtime dependency.
+- Added deterministic `layer`, `status`, `risk`, and `connectivity` projections; every projection contains every node exactly once without changing canonical node authority.
+- Added `--view` default projection selection and explicit positive-integer scale controls for large-graph threshold, initial node materialization, batch size, and maximum rendered edges.
+- Added the Visualization Scale Profile with node/edge counts, `bounded-batch` node rendering, and `visible-endpoints-only` relation rendering.
+- Large-graph rendering keeps the complete model embedded while bounding DOM nodes and SVG paths; hidden data is not treated as absent architecture.
 - Visualization preserves fixed `readOnly: true` and `autoMutation: false` invariants and never classifies or promotes candidates.
-- Added `schemas/visualization.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
+- Added `schemas/visualization.schema.json`, expanded normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
 - Added MSSP Adapter Contract v0.3 with machine-readable adapter descriptors and conformance reports.
 - Added mandatory `deterministic`, `readOnly`, `noExecution`, `noNetwork`, `autoPromotion: false`, and `autoMutation: false` adapter invariants.
 - Added portable adapter provenance checks, stable ordering checks, duplicate-identity checks, module/candidate overlap checks, and Intermediate Model validation.
@@ -78,14 +82,14 @@
 - The Agent Skill adapter does not invoke agents, models, prompts, skills, tools, workflows, evaluators, guardrails, handoffs, memory, MCP servers, transports, browsers, shells, package managers, credentials, network services, or source-URI targets; it does not mutate source projects or register emitted modules.
 - Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, `schemas/godot-adapter-input.schema.json`, and `schemas/agent-skill-adapter-input.schema.json`, plus normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports adapter descriptors, Agent Skill-, EML-, Godot-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- CI exports adapter descriptors, Agent Skill-, EML-, Godot-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, multi-view visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
 - Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
 - Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
 - Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
-- Migration: visualization consumers must keep candidates unclassified and unresolved references visible.
+- Migration: visualization consumers must accept `projections` and `scale`, keep candidates unclassified, preserve unresolved references, and treat not-yet-materialized nodes and edges as present in the complete model.
 - Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
 - Migration: Python metadata consumers must not treat package kind, import path, distribution metadata, or entry points as MSSP classification, activation approval, or runtime loading evidence.
 - Migration: Rust metadata consumers must not treat workspace membership, package/crate kind, Cargo target, feature, edition, or toolchain metadata as MSSP classification, activation approval, or runtime loading evidence.
