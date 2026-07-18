@@ -30,6 +30,7 @@ import type {
   CandidatePromotionDecision,
   PromotionActorKind,
 } from "./promotion.js";
+import { evaluateRouterContracts, parseRouterRequest } from "./router.js";
 import { scanRepository } from "./scanner.js";
 import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "./format.js";
 import { validateProject } from "./validate.js";
@@ -61,6 +62,7 @@ const OPTIONS_WITH_VALUE = new Set([
   "--module",
   "--out",
   "--rationale",
+  "--request",
   "--reviewed-at",
   "--reviewer",
   "--reviewer-kind",
@@ -70,7 +72,7 @@ const OPTIONS_WITH_VALUE = new Set([
 ]);
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp adapters [--json] [--out file]\n  mssp adapt <adapter> <semantic-export.json> [--revision value] [--out file]\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp viz [project] [--format html|json] [--view layer|status|risk|connectivity] [--revision value] [--source-base url] [--large-graph-threshold number] [--initial-node-limit number] [--batch-size number] [--max-rendered-edges number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  adapters           List machine-readable adapter descriptors.\n  adapt              Convert an explicit source export into the MSSP Intermediate Model.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  viz                Generate a read-only multi-view architecture model or self-contained HTML with bounded large-graph rendering.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nAvailable adapters:\n  ${adapterAliasSummary()}\n\nAdapter invariants:\n  Adapters are deterministic, read-only, offline, non-executing, and never auto-promote candidates.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp adapters [--json] [--out file]\n  mssp adapt <adapter> <semantic-export.json> [--revision value] [--out file]\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp route [project] --request router-request.json [--revision value] [--out file]\n  mssp viz [project] [--format html|json] [--view layer|status|risk|connectivity] [--revision value] [--source-base url] [--large-graph-threshold number] [--initial-node-limit number] [--batch-size number] [--max-rendered-edges number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  adapters           List machine-readable adapter descriptors.\n  adapt              Convert an explicit source export into the MSSP Intermediate Model.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  route              Evaluate TMS eligibility from explicit request facts and contracts without executing or activating modules.\n  viz                Generate a read-only multi-view architecture model or self-contained HTML with bounded large-graph rendering.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nAvailable adapters:\n  ${adapterAliasSummary()}\n\nAdapter invariants:\n  Adapters are deterministic, read-only, offline, non-executing, and never auto-promote candidates.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -316,6 +318,22 @@ async function main(): Promise<number> {
     if (revision) options.revision = revision;
     const report = analyzeGitDiffImpact(project, options);
     writeJsonOutput(report, valueAfter(args, "--out"), "MSSP Git diff impact report");
+    return report.summary.ok ? 0 : 1;
+  }
+
+  if (command === "route") {
+    const project = loadProject(projectArg);
+    const requestPath = resolve(requiredValue(args, "--request"));
+    const request = parseRouterRequest(
+      JSON.parse(readFileSync(requestPath, "utf8")) as unknown,
+    );
+    const revision = valueAfter(args, "--revision");
+    const report = evaluateRouterContracts(
+      project,
+      request,
+      revision ? { revision } : {},
+    );
+    writeJsonOutput(report, valueAfter(args, "--out"), "MSSP router evaluation report");
     return report.summary.ok ? 0 : 1;
   }
 
