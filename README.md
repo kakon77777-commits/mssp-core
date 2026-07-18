@@ -54,6 +54,8 @@ Manifest emission       != project registration
 Drift consistency       != semantic equivalence
 Impact detected         != incompatibility
 Visualization           != architecture authority
+Projection grouping     != canonical layer mutation
+Hidden renderer data    != absent architecture
 Adapter metadata        != module declaration or permission grant
 ```
 
@@ -69,7 +71,7 @@ node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.
 node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
 node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
 node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
-node dist/cli.js viz examples/hello-mssp --format html --revision HEAD --out architecture.html
+node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
 node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
 
@@ -120,12 +122,40 @@ Static references remain under `discovery.dependencies`. They do not become appr
 ```bash
 node dist/cli.js viz examples/hello-mssp \
   --format html \
+  --view connectivity \
+  --large-graph-threshold 500 \
+  --initial-node-limit 200 \
+  --batch-size 200 \
+  --max-rendered-edges 2000 \
   --revision HEAD \
   --source-base https://github.com/OWNER/REPO/blob/BRANCH \
   --out architecture.html
 ```
 
-The HTML view contains its own CSS, JavaScript, and model payload. It loads no CDN, external font, analytics service, or runtime library. It supports search, layer filters, node inspection, relation drawing, and optional source navigation.
+The HTML view contains its own CSS, JavaScript, and model payload. It loads no CDN, external font, analytics service, or runtime library.
+
+Deterministic read-only projections:
+
+```text
+layer         canonical MSSP layers
+status        declared / unclassified / unresolved
+risk          L0–L4 / UNSPECIFIED
+connectivity  isolated / leaf / connected / hub
+```
+
+Every projection contains every node exactly once. Projection grouping never changes a node's canonical layer, status, source, declaration, or relations. Risk is never inferred for unspecified nodes, and relation degree is not treated as importance, authority, quality, or runtime centrality.
+
+Large-graph behavior is explicit in `scale`:
+
+```text
+bounded-batch nodes
+visible-endpoints-only edges
+configurable initial node limit and batch size
+configurable maximum rendered SVG paths
+complete nodes and edges remain embedded in the model
+```
+
+The renderer supports projection switching, projection-group filters, search, node inspection, relation drawing, incremental `Show more`, and optional source navigation.
 
 Visualization preserves:
 
@@ -232,7 +262,7 @@ Memory policy       != SCL approval
 - [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
 - [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
 
-Traditional Chinese guides are available under [`docs/`](docs/), including the consolidated [Adapter guide](docs/adapters.zh-TW.md), [Godot guide](docs/godot-adapter.zh-TW.md), and [Agent Skill guide](docs/agent-skill-adapter.zh-TW.md).
+Traditional Chinese guides are available under [`docs/`](docs/), including the [Visualization guide](docs/visualization.zh-TW.md), consolidated [Adapter guide](docs/adapters.zh-TW.md), [Godot guide](docs/godot-adapter.zh-TW.md), and [Agent Skill guide](docs/agent-skill-adapter.zh-TW.md).
 
 ## Repository map
 
@@ -254,8 +284,8 @@ docs/                            Adoption, roadmap, and research guides
 
 - v0.1 architecture-contract MVP: complete.
 - Principal v0.2 repository-intelligence vertical slices: complete.
-- v0.3 visualization foundation and five reference-adapter vertical slices: complete.
-- Multi-view layout and large-graph performance refinement: open.
+- v0.3 visualization, multi-view/large-graph foundation, and five reference-adapter vertical slices: complete.
+- Canvas/WebGL virtualization, worker-based layout, clustering, and measured browser performance guarantees remain outside the current visualization renderer.
 - Compiler-grade AST extraction, complete alias/build-graph resolution, full Git-ignore equivalence, generated-source provenance, runtime DMS transport, and automatic semantic-version selection remain outside the current implementation.
 
 See [Roadmap](docs/roadmap.md) and [Validation Report](VALIDATION-REPORT.md).
