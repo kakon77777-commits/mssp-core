@@ -90,33 +90,11 @@ MSSP YAML / Repository Scanner / External Semantic Export
 Validator / Graph / Visualization / IDE / Agent / Drift / Impact
 ```
 
-The model keeps the following categories separate:
-
-```text
-declared modules       vs unclassified candidates
-normative relations   vs scanner discovery evidence
-portable provenance   vs local environment state
-source representation vs architecture approval
-```
+The model keeps declared modules separate from unclassified candidates, normative relations separate from discovery evidence, portable provenance separate from local environment state, and source representation separate from architecture approval.
 
 ## Repository intelligence
 
-The current v0.2 pipeline is:
-
-```text
-Repository
-  → deterministic bounded scan
-  → unclassified candidates
-  → advisory classification suggestions
-  → explicit review decision
-  → deliberately incomplete contract draft
-  → contract completion
-  → independent final approval
-  → manifest emission
-  → separate project registration
-```
-
-The scanner recognizes common Node.js, Python, Rust, Go, Godot, JVM, and .NET markers; npm, pnpm, and Cargo workspaces; nested `.gitignore` evidence; generated-source conventions; and static references for JavaScript/TypeScript, Python, Go, Rust, and GDScript.
+The v0.2 pipeline performs deterministic bounded scanning, advisory classification, explicit review, blocked contract drafting, independent approval, manifest emission, and separate project registration.
 
 Static references remain under `discovery.dependencies`. They do not become approved runtime relations.
 
@@ -131,21 +109,9 @@ node dist/cli.js route examples/hello-mssp \
   --out router-evaluation.json
 ```
 
-The request supplies explicit facts, MSSP version, available inputs/modules/tools/data, required outputs, requested operations, a risk ceiling, and an optional target set.
+The evaluator checks activation conditions, inputs, outputs, module dependencies, tools, data, permissions, risk, MSSP compatibility, and required-module compatibility.
 
-The evaluator checks:
-
-```text
-activateWhen conditions
-input and output contracts
-required module availability
-required tools and data
-permissions.may and permissions.mayNot
-risk ceiling
-MSSP and required-module version ranges
-```
-
-Only declared TMS modules are candidates. The reference evaluator returns:
+Only declared TMS modules are candidates. Results are:
 
 ```text
 selected       exactly one eligible TMS and no uncertainty
@@ -154,9 +120,7 @@ no-match       no eligible TMS and no uncertainty
 indeterminate  unsupported or incomplete evidence remains
 ```
 
-It never silently ranks multiple eligible modules. Unsupported activation or version syntax remains indeterminate rather than being guessed.
-
-Router evaluation preserves:
+The evaluator never silently ranks multiple eligible modules. Unsupported condition or version syntax remains indeterminate.
 
 ```json
 {
@@ -170,132 +134,31 @@ Router evaluation preserves:
 }
 ```
 
-A `selected` result is static contract eligibility only. SCL approval, permission grant, execution planning, module activation, and runtime compatibility proof remain separate stages.
+A `selected` result is static contract eligibility only. SCL approval, permission grant, execution planning, activation, and runtime compatibility proof remain separate stages.
 
 ## Visualization
 
-`mssp viz` generates either deterministic JSON or a self-contained interactive HTML file.
+`mssp viz` generates deterministic JSON or self-contained interactive HTML with `layer`, `status`, `risk`, and `connectivity` projections.
 
-```bash
-node dist/cli.js viz examples/hello-mssp \
-  --format html \
-  --view connectivity \
-  --large-graph-threshold 500 \
-  --initial-node-limit 200 \
-  --batch-size 200 \
-  --max-rendered-edges 2000 \
-  --revision HEAD \
-  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
-  --out architecture.html
-```
+The renderer supports search, group filters, node inspection, source navigation, bounded-batch nodes, visible-endpoint edges, and configurable SVG limits. Complete nodes and edges remain embedded in the model.
 
-The HTML view contains its own CSS, JavaScript, and model payload. It loads no CDN, external font, analytics service, or runtime library.
-
-Deterministic read-only projections:
-
-```text
-layer         canonical MSSP layers
-status        declared / unclassified / unresolved
-risk          L0–L4 / UNSPECIFIED
-connectivity  isolated / leaf / connected / hub
-```
-
-Every projection contains every node exactly once. Projection grouping never changes a node's canonical layer, status, source, declaration, or relations. Risk is never inferred for unspecified nodes, and relation degree is not treated as importance, authority, quality, or runtime centrality.
-
-Large-graph behavior is explicit in `scale`:
-
-```text
-bounded-batch nodes
-visible-endpoints-only edges
-configurable initial node limit and batch size
-configurable maximum rendered SVG paths
-complete nodes and edges remain embedded in the model
-```
-
-The renderer supports projection switching, projection-group filters, search, node inspection, relation drawing, incremental `Show more`, and optional source navigation.
-
-Visualization preserves:
-
-```json
-{
-  "readOnly": true,
-  "autoMutation": false
-}
-```
+Visualization preserves `readOnly: true` and `autoMutation: false`.
 
 ## Adapter interoperability
 
 MSSP Core consumes versioned semantic exports instead of importing source runtimes, compilers, editors, package managers, or agent frameworks.
 
-```text
-External source-aware exporter
-            ↓ versioned JSON
-      MSSP Adapter Registry
-            ↓ deterministic translation
-      Intermediate Model v0.2
-```
-
-List descriptors:
-
-```bash
-node dist/cli.js adapters
-node dist/cli.js adapters --json --out adapter-descriptors.json
-```
-
 Current reference adapters:
 
-| Adapter ID | CLI aliases | Input |
-|---|---|---|
-| `agent-skill-mssp-export` | `agent-skill`, `skill` | Agent/skill semantic export v0.3 |
-| `eml-mssp-export` | `eml` | EML semantic export v0.3 |
-| `godot-mssp-export` | `godot`, `gd` | Godot semantic export v0.3 |
-| `python-mssp-export` | `python`, `py` | Python semantic export v0.3 |
-| `rust-mssp-export` | `rust`, `rs` | Rust semantic export v0.3 |
+| Adapter ID | CLI aliases |
+|---|---|
+| `agent-skill-mssp-export` | `agent-skill`, `skill` |
+| `eml-mssp-export` | `eml` |
+| `godot-mssp-export` | `godot`, `gd` |
+| `python-mssp-export` | `python`, `py` |
+| `rust-mssp-export` | `rust`, `rs` |
 
-Examples:
-
-```bash
-node dist/cli.js adapt agent-skill examples/agent-skill-adapter/semantic-export.json --revision HEAD --out agent-skill-intermediate-model.json
-node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision HEAD --out eml-intermediate-model.json
-node dist/cli.js adapt godot examples/godot-adapter/semantic-export.json --revision HEAD --out godot-intermediate-model.json
-node dist/cli.js adapt python examples/python-adapter/semantic-export.json --revision HEAD --out python-intermediate-model.json
-node dist/cli.js adapt rust examples/rust-adapter/semantic-export.json --revision HEAD --out rust-intermediate-model.json
-```
-
-Every reference adapter preserves fixed invariants:
-
-```json
-{
-  "deterministic": true,
-  "readOnly": true,
-  "noExecution": true,
-  "noNetwork": true,
-  "autoPromotion": false,
-  "autoMutation": false
-}
-```
-
-Only a complete explicit `declaration` maps to an Intermediate Module. An undeclared source entity remains an `unclassified` candidate, even when the source ecosystem calls it a module, package, crate, scene, autoload, plugin, agent, skill, tool, workflow, or service.
-
-Normative relations are emitted only from explicit declaration fields:
-
-```text
-declaration.requirements.modules     → requires
-declaration.changeImpact.affects     → affects
-declaration.changeImpact.affectedBy  → affected-by
-```
-
-Imports, Cargo dependencies, entry points, scene inheritance, signals, tool names, prompts, triggers, permissions, handoffs, resource access, and naming similarity remain metadata or non-normative evidence.
-
-For Agent Skill exports in particular:
-
-```text
-Required permission != permission grant
-Tool name           != runtime dependency
-Trigger             != activation approval
-Handoff             != normative relation
-Memory policy       != SCL approval
-```
+Only complete explicit declarations map to Intermediate Modules. Undeclared source entities remain unclassified candidates. Imports, dependencies, entry points, signals, prompts, permissions, handoffs, and source metadata do not become normative architecture authority.
 
 ## Normative specifications
 
@@ -323,33 +186,15 @@ Memory policy       != SCL approval
 
 - [Router Contract Evaluator v0.4](spec/MSSP-ROUTER-CONTRACT-EVALUATOR-v0.4.md)
 
-Traditional Chinese guides are available under [`docs/`](docs/), including the [Router guide](docs/router-contract-evaluator.zh-TW.md), [Visualization guide](docs/visualization.zh-TW.md), consolidated [Adapter guide](docs/adapters.zh-TW.md), [Godot guide](docs/godot-adapter.zh-TW.md), and [Agent Skill guide](docs/agent-skill-adapter.zh-TW.md).
-
-## Repository map
-
-```text
-schemas/                         Normative JSON Schemas
-src/                             TypeScript reference implementation and CLI
-examples/hello-mssp/             Complete MSSP adoption fixture and Router Request
-examples/agent-skill-adapter/    Agent Skill semantic-export fixture
-examples/eml-adapter/            EML semantic-export fixture
-examples/godot-adapter/          Godot semantic-export fixture
-examples/python-adapter/         Python semantic-export fixture
-examples/rust-adapter/           Rust semantic-export fixture
-spec/                            Normative specifications
-docs/                            Adoption, roadmap, and research guides
-.github/                         CI and architecture-review workflows
-```
+Traditional Chinese guides are under [`docs/`](docs/), including the [Router guide](docs/router-contract-evaluator.zh-TW.md) and [Visualization guide](docs/visualization.zh-TW.md).
 
 ## Current status
 
 - v0.1 architecture-contract MVP: complete.
 - Principal v0.2 repository-intelligence vertical slices: complete.
-- v0.3 visualization, multi-view/large-graph foundation, and five reference-adapter vertical slices: complete.
+- v0.3 visualization and five reference adapters: complete.
 - v0.4 Router Contract Evaluator foundation: complete.
 - Runtime execution planning, DMS trace transport, SCL enforcement hooks, and risk-aware execution policy remain open.
-- Canvas/WebGL virtualization, worker-based layout, clustering, and measured browser performance guarantees remain outside the current visualization renderer.
-- Compiler-grade AST extraction, complete alias/build-graph resolution, full Git-ignore equivalence, generated-source provenance, and automatic semantic-version selection remain outside the current implementation.
 
 See [Roadmap](docs/roadmap.md) and [Validation Report](VALIDATION-REPORT.md).
 
