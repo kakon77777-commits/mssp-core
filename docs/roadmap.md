@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization, Adapter Contract, EML, Python, and Rust adapters complete; Godot or Agent Skill coverage remains.
+**Status:** Visualization, Adapter Contract, EML, Python, Rust, and Godot adapters complete; Agent Skill coverage and graph refinement remain.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -140,7 +140,25 @@
   - no Python import, execution, interpreter, virtual-environment, package-manager, build-backend, network, source mutation, or project registration;
   - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [x] Rust adapter.
-- [ ] Godot adapter.
+  - versioned `rust-mssp-export` semantic-export input;
+  - `mssp adapt rust` and `mssp adapt rs` aliases;
+  - Cargo workspace, resolver, rust-version, edition, toolchain, package, crate, target, crate-type, feature, and target-triple metadata preservation;
+  - complete explicit declarations mapped to modules;
+  - undeclared Rust components preserved as unclassified candidates;
+  - duplicate component and Cargo-identity rejection;
+  - normative relations emitted only from explicit declarations;
+  - no Cargo, rustc, rustup, linker, build-script, proc-macro, crate execution, registry inspection, network, source mutation, or project registration;
+  - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
+- [x] Godot adapter.
+  - versioned `godot-mssp-export` semantic-export input;
+  - `mssp adapt godot` and `mssp adapt gd` aliases;
+  - engine, renderer, main-scene, project-feature, scripting-language, scene, script, class, node, resource, autoload, plugin, signal, and group metadata preservation;
+  - complete explicit declarations mapped to modules;
+  - undeclared scenes, nodes, scripts, autoloads, singletons, addons, editor plugins, resources, services, and tests preserved as unclassified candidates;
+  - duplicate component and Godot-identity rejection;
+  - normative relations emitted only from explicit declarations;
+  - no editor, runtime, importer, exporter, scene/resource/script loading, GDScript/C#/GDExtension/tool-script/plugin execution, `.godot` inspection, network, source mutation, or project registration;
+  - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [ ] Agent Skill adapter.
 - [ ] Multi-view layout and large-graph performance refinement.
 
