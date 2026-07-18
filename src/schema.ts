@@ -56,6 +56,12 @@ export const validateGitDiffImpactSchema: ValidateFunction = ajv.compile(
 export const validateVisualizationSchema: ValidateFunction = ajv.compile(
   readSchema("visualization.schema.json"),
 );
+export const validateAdapterDescriptorSchema: ValidateFunction = ajv.compile(
+  readSchema("adapter-descriptor.schema.json"),
+);
+export const validateEmlAdapterInputSchema: ValidateFunction = ajv.compile(
+  readSchema("eml-adapter-input.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
