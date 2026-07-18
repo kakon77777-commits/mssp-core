@@ -17,6 +17,29 @@ MSSP Intermediate Model
 Validator / Graph / IDE / Agent / Impact Analysis
 ```
 
+## 兩種架構狀態
+
+中介模型現在明確區分：
+
+```text
+modules     已分類、已有 MSSP 層級與契約的正式模組
+candidates  只有結構證據、尚未分類的候選邊界
+```
+
+這個區分很重要。
+
+Repository Scanner 找到 `packages/export-pdf`，只代表它可能是一個獨立結構邊界，不代表它已經被證明是 TMS，也不代表它不能是 SMS。
+
+候選物件沒有 `layer`，只能先保持：
+
+```json
+{
+  "status": "unclassified"
+}
+```
+
+直到人工或受治理 Agent 完成分類與契約補全後，才可以進入 `modules`。
+
 ## 核心原則
 
 中介模型必須：
@@ -25,7 +48,7 @@ Validator / Graph / IDE / Agent / Impact Analysis
 - 不輸出本機絕對路徑；
 - 同一輸入得到穩定輸出；
 - 明確記錄由哪個 Adapter 產生；
-- 每個模組與關係都可追溯到來源或證據；
+- 每個模組、候選與關係都可追溯到來源或證據；
 - 可用 JSON 傳遞；
 - 通過正式 JSON Schema。
 
@@ -33,26 +56,84 @@ Validator / Graph / IDE / Agent / Impact Analysis
 
 ## CLI
 
+Manifest 轉換：
+
 ```bash
 mssp model .
 mssp model . --revision <git-sha>
 mssp model . --revision <git-sha> --out mssp-model.json
 ```
 
-輸出會包含：
+Repository 掃描：
+
+```bash
+mssp scan .
+mssp scan . --revision <git-sha>
+mssp scan . --max-files 10000 --out repository-scan.json
+```
+
+兩種輸出都使用同一份 Intermediate Model Schema。
+
+## 頂層內容
+
+模型可包含：
 
 - 模型版本與類型；
 - 產生器與 Adapter；
 - 專案身分；
 - MSSP 層級；
-- 正規化模組；
+- 正規化正式模組；
+- 尚未分類的候選；
 - dependency 與 MSSP-VT 關係；
 - 專案政策；
+- Repository discovery 資訊；
 - 來源與證據。
+
+Manifest Adapter 通常輸出正式 `modules`，`candidates` 為空。
+
+Repository Scanner 基礎層通常輸出 `candidates` 與 `discovery`，而 `modules`、`layers`、`relations` 暫時為空。
+
+## 候選物件
+
+候選包含：
+
+- 候選 ID；
+- 相對路徑；
+- 邊界種類；
+- 邊界信心；
+- 檔案與原始碼數量；
+- 語言；
+- 來源；
+- 證據。
+
+目前邊界種類：
+
+```text
+repository   明確掃描根目錄
+package      有套件／專案標記的目錄
+source-root  慣例來源目錄
+ directory   多模組容器下的來源子目錄
+```
+
+`boundaryConfidence` 只代表「這裡像不像一個獨立結構邊界」，不是 SMS／TMS 分類信心。
+
+## Discovery
+
+Scanner 可加入：
+
+- `root`；
+- `revision`；
+- 是否因檔案上限而截斷；
+- 忽略目錄規則；
+- 總檔案數與原始碼數；
+- 語言與副檔名統計；
+- ecosystem markers。
+
+若 `discovery.truncated` 為 `true`，工具不得假設盤點完整。
 
 ## 來源追蹤
 
-例如：
+Manifest 來源：
 
 ```json
 {
@@ -63,9 +144,18 @@ mssp model . --revision <git-sha> --out mssp-model.json
 }
 ```
 
-`uri` 是專案相對路徑，不是某台電腦上的絕對路徑。
+Scanner 來源：
 
-未來 Repository Scanner 的來源可標記為 `scanner`，EML／Python／Rust 轉換器可標記為 `adapter`。
+```json
+{
+  "kind": "scanner",
+  "uri": "packages/export-pdf",
+  "format": "directory",
+  "adapter": "repository-scanner"
+}
+```
+
+`uri` 是專案相對路徑，不是某台電腦上的絕對路徑。
 
 ## 關係種類
 
@@ -78,6 +168,8 @@ affected-by  MSSP-VT：此模組受目標模組影響
 ```
 
 `affects` 與 `affected-by` 不是 runtime dependency，工具不得混為一談。
+
+Scanner 也不得因為兩個目錄相鄰，就自動生成 `requires`。
 
 ## 證據
 
@@ -97,17 +189,27 @@ affected-by  MSSP-VT：此模組受目標模組影響
 
 ## 現在已接入的功能
 
-目前架構圖已改為：
+正式架構圖：
 
 ```text
 LoadedProject
-    ↓
-Intermediate Model
+    ↓ Manifest Adapter
+Intermediate Model with modules
     ↓
 Graph / Mermaid
 ```
 
-因此中介模型不是孤立文件，而是已經進入正式執行路徑。
+Repository 掃描：
+
+```text
+Repository
+    ↓ Repository Scanner
+Intermediate Model with candidates
+    ↓ 分類／宣告
+Intermediate Model with modules
+```
+
+因此中介模型不是孤立文件，而是 Manifest、Scanner、未來 Adapter 與分析工具的共同邊界。
 
 完整規格與 Schema：
 
