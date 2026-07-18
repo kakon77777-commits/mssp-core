@@ -28,6 +28,7 @@ describe("Rust Adapter v0.3", () => {
   it("publishes a schema-valid descriptor through the deterministic adapter registry", () => {
     expect(validateAdapterDescriptorSchema(RUST_ADAPTER_DESCRIPTOR)).toBe(true);
     expect(listAdapterDescriptors().map((descriptor) => descriptor.id)).toEqual([
+      "agent-skill-mssp-export",
       "eml-mssp-export",
       "godot-mssp-export",
       "python-mssp-export",
