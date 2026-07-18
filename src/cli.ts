@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { createDiagnosticEnvelope, getCanonicalDiagnosticCode } from "./diagnostics.js";
 import { buildGraph, graphToMermaid } from "./graph.js";
 import { initializeProject } from "./init.js";
 import { loadProject } from "./io.js";
@@ -9,7 +10,7 @@ import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "
 import { validateProject } from "./validate.js";
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  graph     Generate a Mermaid or JSON dependency graph.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  graph     Generate a Mermaid or JSON dependency graph.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -50,8 +51,22 @@ async function main(): Promise<number> {
 
   if (command === "lint") {
     const report = validateProject(projectArg);
-    if (args.includes("--json")) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-    else process.stdout.write(formatValidationReport(report));
+    if (args.includes("--json")) {
+      const metadata: Record<string, unknown> = {};
+      if (report.project) {
+        metadata.projectId = report.project.manifest.id;
+        metadata.projectVersion = report.project.manifest.version;
+      }
+      process.stdout.write(`${JSON.stringify(createDiagnosticEnvelope({
+        command: "lint",
+        ok: report.ok,
+        diagnostics: report.diagnostics,
+        root: report.project?.root,
+        metadata,
+      }), null, 2)}\n`);
+    } else {
+      process.stdout.write(formatValidationReport(report));
+    }
     return report.ok ? 0 : 1;
   }
 
@@ -84,7 +99,17 @@ async function main(): Promise<number> {
     const project = loadProject(projectArg);
     const report = runIslandTests(project, valueAfter(args, "--module"));
     if (args.includes("--json")) {
-      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+      process.stdout.write(`${JSON.stringify(createDiagnosticEnvelope({
+        command: "island",
+        ok: report.ok,
+        diagnostics: report.diagnostics,
+        root: project.root,
+        metadata: {
+          projectId: project.manifest.id,
+          projectVersion: project.manifest.version,
+          tested: report.tested,
+        },
+      }), null, 2)}\n`);
     } else {
       for (const id of report.tested) process.stdout.write(`TEST TMS island: ${id}\n`);
       if (!report.diagnostics.length) process.stdout.write("OK all selected TMS islands passed.\n");
@@ -104,6 +129,6 @@ main()
     process.exitCode = code;
   })
   .catch((error) => {
-    process.stderr.write(`ERROR E_CLI: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`ERROR ${getCanonicalDiagnosticCode("E_CLI")}: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
