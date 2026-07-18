@@ -15,27 +15,29 @@ Date: 2026-07-18
 The Draft PR is validated from a clean checkout of the pull-request merge ref.
 
 ```text
-npm ci --no-audit --no-fund                         PASS
-npm run typecheck                                   PASS
-npm test                                            PASS — 9 test files, 31 tests
-npm run build                                       PASS
-mssp lint examples/hello-mssp                       PASS
-mssp lint examples/hello-mssp --json                PASS
-mssp island examples/hello-mssp                     PASS
-mssp island examples/hello-mssp --json              PASS
-mssp model examples/hello-mssp --revision <sha>     PASS
-mssp scan . --revision <sha> --max-files 10000      PASS
-mssp classify . --revision <sha> --max-files 10000  PASS
-mssp review-candidate . ... --out promotion-review.json PASS
-mssp graph examples/hello-mssp                      PASS
-validation artifact upload                         PASS
+npm ci --no-audit --no-fund                              PASS
+npm run typecheck                                        PASS
+npm test                                                 PASS — 10 test files, 35 tests
+npm run build                                            PASS
+mssp lint examples/hello-mssp                            PASS
+mssp lint examples/hello-mssp --json                     PASS
+mssp island examples/hello-mssp                          PASS
+mssp island examples/hello-mssp --json                   PASS
+mssp model examples/hello-mssp --revision <sha>          PASS
+mssp scan . --revision <sha> --max-files 10000           PASS
+mssp classify . --revision <sha> --max-files 10000       PASS
+mssp review-candidate . ... --out promotion-review.json  PASS
+mssp drift examples/hello-mssp ... --out architecture-drift.json PASS
+mssp graph examples/hello-mssp                           PASS
+validation artifact upload                              PASS
 ```
 
-The governed promotion-workflow validation run was GitHub Actions run `29630165426` on head commit `aeb4cedcd7472107590e200aa5d065bc7b4bb37b`.
+The architecture-drift validation run was GitHub Actions run `29630624141` on head commit `333397414f7d484b43ecc8cadbb8e39595cf8694`.
 
 The validated artifact contains:
 
 ```text
+architecture-drift.json
 architecture.mmd
 classification-suggestions.json
 diagnostics.json
@@ -45,8 +47,8 @@ promotion-review.json
 repository-scan.json
 ```
 
-Artifact ID: `8425189837`  
-Artifact digest: `sha256:7493d9222f54f5ecf09e9f72e4d57e8e202e422d782ec0de75524e9da174a636`
+Artifact ID: `8425324629`  
+Artifact digest: `sha256:369cfc2d108d56952096bbb003d145eb270de660923993512e20c57d54f70ac9`
 
 ## Protocol and model conformance
 
@@ -55,12 +57,14 @@ Artifact digest: `sha256:7493d9222f54f5ecf09e9f72e4d57e8e202e422d782ec0de75524e9
 - Repository Scanner output validates against the same Intermediate Model schema.
 - Classification reports validate against `schemas/classification-suggestions.schema.json`.
 - Candidate promotion reviews validate against `schemas/promotion-review.schema.json`.
+- Architecture drift reports validate against `schemas/architecture-drift.schema.json`.
 - Manifest models emit declared `modules` and an empty `candidates` array.
 - Scanner models emit unclassified `candidates`, discovery evidence, and no invented MSSP layer assignments.
 - Scanner static dependencies remain in `discovery.dependencies`; normative `relations` remain empty.
 - Classification reports preserve `mode: advisory`, `autoPromotion: false`, and `status: review-required`.
 - Promotion reviews preserve named reviewer identity, rationale, source snapshots, explicit decision, blockers, and `requiresIndependentApproval: true`.
-- Model, scanner, classifier, and fixed-input review output are deterministic for identical inputs and options.
+- Drift reports preserve `mode: static-conservative`, `semanticEquivalence: false`, and `autoMutation: false`.
+- Model, scanner, classifier, fixed-input review, and drift output are deterministic for identical inputs and options.
 - Source references are repository-relative and may include an explicit revision.
 
 ## Verified scanner evidence
@@ -106,18 +110,33 @@ Artifact digest: `sha256:7493d9222f54f5ecf09e9f72e4d57e8e202e422d782ec0de75524e9
 - The CLI refuses to overwrite an existing promotion target.
 - Promotion does not modify `mssp.yaml`, register a module automatically, create runtime relations, or execute repository code.
 
+## Verified architecture drift behavior
+
+- The canonical reference project produces a schema-valid `consistent` report.
+- Canonical FMS identity, module-index, and architecture-notes document presence is checked.
+- A Markdown table with `ID` and `Layer` columns is parsed conservatively; unrestricted prose remains `indeterminate`.
+- Missing, stale, duplicate, and layer-mismatched FMS module-index rows are reported separately.
+- Executable source outside every declared module boundary is reported as unowned drift.
+- Executable source covered by nested or overlapping manifests is reported as ambiguous ownership.
+- Executable source inside FMS or SCL is an error-severity drift finding.
+- Generated-source conventions are excluded from ownership findings.
+- Reaching the configured file bound creates `MSSP_DRIFT_009` and an `indeterminate` finding rather than a completeness claim.
+- `consistent` means structural consistency only; the report explicitly denies semantic-equivalence and automatic-mutation claims.
+- Drift analysis does not repair FMS, mutate manifests, register modules, or create runtime relations.
+
 ## Verified architecture boundaries
 
 - Executable source inside FMS is rejected.
 - TMS directly depending on another TMS is rejected.
 - SMS depending on TMS is rejected.
 - Unknown TMS island target is rejected.
-- Invalid scanner `maxFiles` values are rejected.
+- Invalid scanner and drift `maxFiles` values are rejected.
 - Dependency, build, cache, and editor output directories are excluded from scanner inventory.
 - Scanner candidates contain no MSSP `layer` before classification review.
 - Static source references do not become declared runtime `relations` automatically.
 - Classification suggestions cannot approve or promote themselves.
 - Classification review and final promotion approval are separate roles.
+- Drift findings cannot mutate the architecture they describe.
 
 ## Package portability
 
@@ -132,8 +151,10 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No interactive contract-draft editor or automatic condition-resolution ledger.
 - No automatic, governed registration of an emitted manifest into `mssp.yaml`.
 - No cryptographic review signatures or external identity verification.
+- No semantic comparison of FMS narrative prose with implementation behavior.
+- No runtime-trace or deployment-topology drift comparison.
+- No historical or cross-version drift baseline.
 - No semantic ingestion of activation, state ownership, deployment topology, rollback, or historical change data.
-- No FMS/code drift analysis.
 - No Git diff impact inference.
 - No runtime instrumentation or DMS event transport protocol.
 - No visual web editor.
