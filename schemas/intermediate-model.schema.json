@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MSSP Intermediate Model v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "generatedBy",
+    "project",
+    "layers",
+    "modules",
+    "relations",
+    "policies"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.2" },
+    "kind": { "const": "mssp-intermediate-model" },
+    "generatedBy": { "$ref": "#/$defs/generatedBy" },
+    "project": { "$ref": "#/$defs/project" },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/module" }
+    },
+    "relations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relation" }
+    },
+    "policies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/policy" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "layerId": {
+      "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "uri"],
+      "properties": {
+        "kind": {
+          "enum": ["manifest", "scanner", "adapter", "generated"]
+        },
+        "uri": { "$ref": "#/$defs/nonEmptyString" },
+        "format": { "$ref": "#/$defs/nonEmptyString" },
+        "adapter": { "$ref": "#/$defs/nonEmptyString" },
+        "revision": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "message"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "declaration",
+            "source",
+            "dependency",
+            "policy",
+            "inference",
+            "test",
+            "other"
+          ]
+        },
+        "message": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/source" },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "generatedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "adapter"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "adapter": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "type": "string" },
+        "source": { "$ref": "#/$defs/source" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/layerId" },
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modules", "tools", "data"],
+      "properties": {
+        "modules": { "$ref": "#/$defs/stringArray" },
+        "tools": { "$ref": "#/$defs/stringArray" },
+        "data": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["may", "mayNot"],
+      "properties": {
+        "may": { "$ref": "#/$defs/stringArray" },
+        "mayNot": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mssp", "modules"],
+      "properties": {
+        "mssp": { "$ref": "#/$defs/nonEmptyString" },
+        "modules": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      }
+    },
+    "changeImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["affects", "affectedBy", "notes"],
+      "properties": {
+        "affects": { "$ref": "#/$defs/stringArray" },
+        "affectedBy": { "$ref": "#/$defs/stringArray" },
+        "notes": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "layer",
+        "purpose",
+        "activation",
+        "inputs",
+        "outputs",
+        "requirements",
+        "permissions",
+        "riskLevel",
+        "failureModes",
+        "validation",
+        "tests",
+        "compatibility",
+        "changeImpact",
+        "source",
+        "evidence"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "layer": { "$ref": "#/$defs/layerId" },
+        "purpose": { "$ref": "#/$defs/nonEmptyString" },
+        "entry": { "$ref": "#/$defs/nonEmptyString" },
+        "activation": { "$ref": "#/$defs/stringArray" },
+        "inputs": { "$ref": "#/$defs/stringArray" },
+        "outputs": { "$ref": "#/$defs/stringArray" },
+        "requirements": { "$ref": "#/$defs/requirements" },
+        "permissions": { "$ref": "#/$defs/permissions" },
+        "riskLevel": { "enum": ["L0", "L1", "L2", "L3", "L4"] },
+        "failureModes": { "$ref": "#/$defs/stringArray" },
+        "validation": { "$ref": "#/$defs/stringArray" },
+        "tests": { "$ref": "#/$defs/stringArray" },
+        "compatibility": { "$ref": "#/$defs/compatibility" },
+        "changeImpact": { "$ref": "#/$defs/changeImpact" },
+        "maintainer": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/source" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "from", "to", "source", "evidence"],
+      "properties": {
+        "kind": { "enum": ["requires", "affects", "affected-by"] },
+        "from": { "$ref": "#/$defs/nonEmptyString" },
+        "to": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/source" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "value", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "value": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "$ref": "#/$defs/nonEmptyString" }
+          ]
+        },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    }
+  }
+}
