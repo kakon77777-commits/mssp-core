@@ -3,6 +3,7 @@ export * from "./diagnostics.js";
 export * from "./model.js";
 export * from "./adapter.js";
 export * from "./declarative-adapter.js";
+export * from "./agent-skill-adapter.js";
 export * from "./eml-adapter.js";
 export * from "./python-adapter.js";
 export * from "./rust-adapter.js";
