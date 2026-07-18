@@ -36,7 +36,7 @@ validation artifact upload                              PASS
 
 The implementation validation run was GitHub Actions run `29631332622` on head commit `b7849544f0f4fa1460577b8609f21b118b946df5`.
 
-The final documentation-synchronized branch run was GitHub Actions run `29631412115` on head commit `d3c9724aec7b977222312d8f733a3b23c915995a`.
+The final documentation-synchronized branch run was GitHub Actions run `29631442639` on head commit `2850d189c3dc806976e64378db6274d9855fe73c`.
 
 The final artifact contains:
 
@@ -52,8 +52,8 @@ promotion-review.json
 repository-scan.json
 ```
 
-Artifact ID: `8425586520`  
-Artifact digest: `sha256:7c75192ce1045c0fd7dd64f57ce8694b2f8199dba1b89a98295af3048cb74400`
+Artifact ID: `8425596975`  
+Artifact digest: `sha256:e61c4c702e6e1953cfe62d53309bb258491b0b46b57b5c1131182d24da976775`
 
 ## Protocol and model conformance
 
