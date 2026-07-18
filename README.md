@@ -31,6 +31,7 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - `mssp island`: enforce the TMS island-test rule.
 - `mssp model`: export the deterministic, language-neutral MSSP Intermediate Model from manifests.
 - `mssp scan`: scan an existing repository and emit evidence-backed, unclassified structural candidates.
+- `mssp classify`: produce evidence-backed, review-required layer suggestions without promoting candidates.
 - `mssp graph`: generate a Mermaid or JSON architecture graph from the Intermediate Model.
 - `mssp explain`: print a concise inventory for humans and agents.
 - MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
@@ -39,7 +40,7 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
-The scanner deliberately does **not** auto-classify candidates as SMS or TMS. It discovers structural and dependency evidence first and leaves architecture classification to a later governed review step.
+The scanner does not assign MSSP layers. The classifier emits hypotheses, support, counterevidence, and unresolved questions, while preserving `autoPromotion: false` and `review-required`.
 
 ## Five-minute quick start
 
@@ -51,6 +52,7 @@ node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
 node dist/cli.js scan . --revision HEAD --out /tmp/repository-scan.json
+node dist/cli.js classify . --revision HEAD --out /tmp/classification-suggestions.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -62,6 +64,7 @@ npm run mssp -- lint examples/hello-mssp
 npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
+npm run mssp -- classify . --revision HEAD --max-files 10000
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
@@ -70,6 +73,8 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 The JSON diagnostic commands emit the [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md). Consumers should use `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
 The `model` and `scan` commands emit the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, scanners, adapters, IDEs, agents, graphs, and future impact analysis.
+
+The `classify` command emits the independent [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) report.
 
 ## Repository Scanner v0.2
 
@@ -111,18 +116,53 @@ The default scan bound is 50,000 files. A scan that reaches the bound sets `disc
 
 Full scanner specification: [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-REPOSITORY-SCANNER-v0.2.md).
 
+## Classification Suggestions v0.2
+
+```text
+Unclassified candidate
+    ↓ deterministic advisory rules
+Suggested layer + support + counterevidence + unresolved questions
+    ↓ separate review and declaration
+Approved MSSP module or rejected hypothesis
+```
+
+The classifier may suggest `FMS`, `SCL`, `SMS`, `TMS`, `DMS`, `ROUTER`, `RUNTIME`, or `UNDETERMINED`.
+
+It uses inspectable signals from names, paths, package/workspace boundaries, and static candidate-dependency topology. It does not execute repository code or call an AI model.
+
+Every suggestion preserves:
+
+```json
+{
+  "status": "review-required",
+  "confidence": "low | medium | high",
+  "supportScore": 0.0,
+  "alternativeLayers": [],
+  "supportingEvidence": [],
+  "counterEvidence": [],
+  "unresolvedQuestions": []
+}
+```
+
+`supportScore` is heuristic support, not probability. A truncated scan forces all suggestions to low confidence. Repository and source-root aggregate boundaries remain `UNDETERMINED`.
+
+The report cannot modify candidates, create module declarations, create runtime relations, approve its own recommendation, or bypass architecture review.
+
+Full specification: [`spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md`](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md).
+
 ## Adopt MSSP in an existing repository
 
 1. Run `mssp scan` to create a structural and dependency evidence inventory.
-2. Review candidates instead of accepting automatic layer assignments.
-3. Add `mssp.yaml` at the repository root.
-4. Create `FMS/00_SYSTEM_NARRATIVE.md`, `FMS/01_MODULE_INDEX.md`, and `FMS/02_ARCHITECTURE_NOTES.md`.
-5. Declare stable capabilities as SMS manifests.
-6. Declare optional capabilities as TMS manifests with activation, permissions, failure modes, validation, and representative tests.
-7. Add SCL change contracts and DMS diagnostic contracts.
-8. Run `mssp lint` and `mssp island` in CI.
-9. Require an FMS review whenever a pull request changes system identity, module boundaries, or dependency direction.
-10. Update MSSP-VT impact relations whenever compatibility changes.
+2. Run `mssp classify` to produce reviewable hypotheses, not declarations.
+3. Review support, counterevidence, alternatives, and unresolved questions.
+4. Add `mssp.yaml` at the repository root.
+5. Create `FMS/00_SYSTEM_NARRATIVE.md`, `FMS/01_MODULE_INDEX.md`, and `FMS/02_ARCHITECTURE_NOTES.md`.
+6. Declare stable capabilities as SMS manifests.
+7. Declare optional capabilities as TMS manifests with activation, permissions, failure modes, validation, and representative tests.
+8. Add SCL change contracts and DMS diagnostic contracts.
+9. Run `mssp lint` and `mssp island` in CI.
+10. Require an FMS review whenever a pull request changes system identity, module boundaries, or dependency direction.
+11. Update MSSP-VT impact relations whenever compatibility changes.
 
 ## Module contract
 
@@ -199,17 +239,17 @@ The package name is reserved for publication; before npm publication, run the re
 ## Repository map
 
 ```text
-schemas/                 Normative schemas for manifests, diagnostics, and the Intermediate Model
-src/                     TypeScript core, scanner, static evidence helpers, and CLI
+schemas/                 Normative schemas for manifests, diagnostics, models, and classification reports
+src/                     TypeScript core, scanner, classifier, evidence helpers, and CLI
 examples/hello-mssp/     Complete reference adoption
 spec/                    Method and interoperability specifications
-docs/                    Adoption, protocol guides, EML integration, whitepaper, roadmap
+docs/                    Adoption, protocol guides, classification guide, EML integration, whitepaper, roadmap
 .github/                  CI and architecture-review workflow
 ```
 
 ## Status
 
-`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, and generated-source filtering are implemented. Tree-sitter/compiler-grade dependency resolution, evidence-backed layer classification, candidate promotion, FMS/code drift analysis, and Git diff impact inference remain open.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, generated-source filtering, and evidence-backed classification suggestions are implemented. Tree-sitter/compiler-grade dependency resolution, candidate promotion, FMS/code drift analysis, and Git diff impact inference remain open.
 
 ## License
 
