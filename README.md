@@ -68,50 +68,14 @@ Adapter metadata        != module declaration or permission grant
 ```bash
 npm install
 npm run build
-
 node dist/cli.js lint examples/hello-mssp
-node dist/cli.js model examples/hello-mssp --revision HEAD --out intermediate-model.json
-node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.json
-node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
-node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
-node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
 node dist/cli.js route examples/hello-mssp --request examples/hello-mssp/router-request.json --revision HEAD --out router-evaluation.json
 node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
-node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
-
-## Intermediate Model pipeline
-
-```text
-MSSP YAML / Repository Scanner / External Semantic Export
-                          ↓
-               MSSP Intermediate Model v0.2
-                          ↓
-Validator / Graph / Visualization / IDE / Agent / Drift / Impact
-```
-
-The model keeps declared modules separate from unclassified candidates, normative relations separate from discovery evidence, portable provenance separate from local environment state, and source representation separate from architecture approval.
-
-## Repository intelligence
-
-The v0.2 pipeline performs deterministic bounded scanning, advisory classification, explicit review, blocked contract drafting, independent approval, manifest emission, and separate project registration.
-
-Static references remain under `discovery.dependencies`. They do not become approved runtime relations.
 
 ## Router governance
 
-`mssp route` evaluates declared TMS modules against an explicit Router Request without loading or executing them.
-
-```bash
-node dist/cli.js route examples/hello-mssp \
-  --request examples/hello-mssp/router-request.json \
-  --revision HEAD \
-  --out router-evaluation.json
-```
-
-The evaluator checks activation conditions, inputs, outputs, module dependencies, tools, data, permissions, risk, MSSP compatibility, and required-module compatibility.
-
-Only declared TMS modules are candidates. Results are:
+`mssp route` evaluates declared TMS modules against explicit request facts and contracts without loading or executing them.
 
 ```text
 selected       exactly one eligible TMS and no uncertainty
@@ -120,7 +84,7 @@ no-match       no eligible TMS and no uncertainty
 indeterminate  unsupported or incomplete evidence remains
 ```
 
-The evaluator never silently ranks multiple eligible modules. Unsupported condition or version syntax remains indeterminate.
+It checks activation conditions, input/output contracts, required modules, tools, data, declared permissions, risk ceilings, MSSP compatibility, and required-module compatibility. It never silently ranks multiple eligible modules.
 
 ```json
 {
@@ -134,59 +98,25 @@ The evaluator never silently ranks multiple eligible modules. Unsupported condit
 }
 ```
 
-A `selected` result is static contract eligibility only. SCL approval, permission grant, execution planning, activation, and runtime compatibility proof remain separate stages.
+A `selected` result is static eligibility only. SCL approval, permission grant, execution planning, activation, and runtime compatibility proof remain separate stages.
 
 ## Visualization
 
-`mssp viz` generates deterministic JSON or self-contained interactive HTML with `layer`, `status`, `risk`, and `connectivity` projections.
-
-The renderer supports search, group filters, node inspection, source navigation, bounded-batch nodes, visible-endpoint edges, and configurable SVG limits. Complete nodes and edges remain embedded in the model.
-
-Visualization preserves `readOnly: true` and `autoMutation: false`.
+`mssp viz` generates deterministic JSON or self-contained interactive HTML with `layer`, `status`, `risk`, and `connectivity` projections. Bounded DOM and SVG rendering keeps complete model data embedded while limiting visible browser work.
 
 ## Adapter interoperability
 
-MSSP Core consumes versioned semantic exports instead of importing source runtimes, compilers, editors, package managers, or agent frameworks.
+MSSP Core consumes versioned semantic exports instead of importing source runtimes. Current reference adapters cover Agent Skill, EML, Godot, Python, and Rust.
 
-Current reference adapters:
+Only complete explicit declarations map to Intermediate Modules. Undeclared source entities remain unclassified candidates. Source metadata does not become architecture authority or a permission grant.
 
-| Adapter ID | CLI aliases |
-|---|---|
-| `agent-skill-mssp-export` | `agent-skill`, `skill` |
-| `eml-mssp-export` | `eml` |
-| `godot-mssp-export` | `godot`, `gd` |
-| `python-mssp-export` | `python`, `py` |
-| `rust-mssp-export` | `rust`, `rs` |
+## Specifications
 
-Only complete explicit declarations map to Intermediate Modules. Undeclared source entities remain unclassified candidates. Imports, dependencies, entry points, signals, prompts, permissions, handoffs, and source metadata do not become normative architecture authority.
-
-## Normative specifications
-
-### v0.2 repository intelligence
-
-- [Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)
-- [Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
-- [Repository Scanner v0.2](spec/MSSP-REPOSITORY-SCANNER-v0.2.md)
-- [Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)
-- [Candidate Review and Promotion v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)
-- [Architecture Drift v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
-- [Git Diff Impact v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
-
-### v0.3 visualization and adapters
-
+- [Repository intelligence v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
 - [Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
 - [Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
-- [EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
-- [Python Adapter v0.3](spec/MSSP-PYTHON-ADAPTER-v0.3.md)
-- [Rust Adapter v0.3](spec/MSSP-RUST-ADAPTER-v0.3.md)
-- [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
-- [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
-
-### v0.4 runtime governance
-
 - [Router Contract Evaluator v0.4](spec/MSSP-ROUTER-CONTRACT-EVALUATOR-v0.4.md)
-
-Traditional Chinese guides are under [`docs/`](docs/), including the [Router guide](docs/router-contract-evaluator.zh-TW.md) and [Visualization guide](docs/visualization.zh-TW.md).
+- [Traditional Chinese Router guide](docs/router-contract-evaluator.zh-TW.md)
 
 ## Current status
 
@@ -194,7 +124,7 @@ Traditional Chinese guides are under [`docs/`](docs/), including the [Router gui
 - Principal v0.2 repository-intelligence vertical slices: complete.
 - v0.3 visualization and five reference adapters: complete.
 - v0.4 Router Contract Evaluator foundation: complete.
-- Runtime execution planning, DMS trace transport, SCL enforcement hooks, and risk-aware execution policy remain open.
+- Runtime planning, DMS trace transport, SCL enforcement hooks, and risk-aware execution policy remain open.
 
 See [Roadmap](docs/roadmap.md) and [Validation Report](VALIDATION-REPORT.md).
 
