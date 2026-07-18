@@ -34,15 +34,16 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - `mssp classify`: produce evidence-backed, review-required layer suggestions without promoting candidates.
 - `mssp review-candidate`: record an explicit approve, reject, or defer decision and produce a blocked contract draft when approved.
 - `mssp promote-candidate`: emit a completed module manifest only after independent final approval.
+- `mssp drift`: compare canonical FMS records, module manifests, and bounded source ownership without mutating the project.
 - `mssp graph`: generate a Mermaid or JSON architecture graph from the Intermediate Model.
 - `mssp explain`: print a concise inventory for humans and agents.
 - MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Stable public `MSSP_*_NNN` diagnostic codes with v0.1 identifiers preserved as `legacyCode`.
-- Portable source references, declared dependency/MSSP-VT relations, scanner evidence, classification evidence, and promotion provenance.
+- Portable source references, declared dependency/MSSP-VT relations, scanner evidence, classification evidence, promotion provenance, and structural drift evidence.
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
-The scanner does not assign MSSP layers. The classifier emits hypotheses, support, counterevidence, and unresolved questions while preserving `autoPromotion: false`. Review approval still does not equal promotion: every contract must be completed and independently approved.
+The scanner does not assign MSSP layers. The classifier emits hypotheses, support, counterevidence, and unresolved questions while preserving `autoPromotion: false`. Review approval still does not equal promotion: every contract must be completed and independently approved. A clean drift report establishes structural consistency only, not semantic or runtime equivalence.
 
 ## Five-minute quick start
 
@@ -60,6 +61,7 @@ node dist/cli.js review-candidate . \
   --reviewer architecture-reviewer \
   --rationale "The aggregate boundary needs a system-level decision." \
   --out /tmp/promotion-review.json
+node dist/cli.js drift /tmp/my-mssp-project --revision HEAD --out /tmp/architecture-drift.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -71,6 +73,7 @@ npm run mssp -- lint examples/hello-mssp
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
 npm run mssp -- classify . --revision HEAD --max-files 10000
+npm run mssp -- drift examples/hello-mssp --revision HEAD --max-files 10000
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
@@ -80,7 +83,7 @@ The JSON diagnostic commands emit the [MSSP Diagnostic Protocol v0.2](spec/MSSP-
 
 The `model` and `scan` commands emit the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, scanners, adapters, IDEs, agents, graphs, and future impact analysis.
 
-The `classify` command emits the independent [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) report. Candidate review and manifest emission follow the [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md).
+The `classify` command emits the independent [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md) report. Candidate review and manifest emission follow the [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md). Structural consistency reports follow [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md).
 
 ## Repository Scanner v0.2
 
@@ -187,6 +190,43 @@ Manifest emission ≠ Project registration
 
 Traditional Chinese guide: [`docs/candidate-promotion.zh-TW.md`](docs/candidate-promotion.zh-TW.md).
 
+## Architecture drift report v0.2
+
+```text
+Canonical FMS records
+        ↕
+Module manifests
+        ↕
+Configured layer source ownership
+```
+
+Run:
+
+```bash
+node dist/cli.js drift examples/hello-mssp \
+  --revision HEAD \
+  --max-files 10000 \
+  --out architecture-drift.json
+```
+
+The report checks canonical FMS document presence, parses the `ID` and `Layer` table in `FMS/01_MODULE_INDEX.md`, compares it with declared manifests, and checks whether executable source is covered by exactly one module boundary.
+
+Every report preserves:
+
+```json
+{
+  "analysis": {
+    "mode": "static-conservative",
+    "semanticEquivalence": false,
+    "autoMutation": false
+  }
+}
+```
+
+Findings distinguish positive `drift` from `indeterminate` evidence. Truncated inventories and prose-only module indexes cannot be treated as proof of consistency. The analyzer does not repair files, register modules, infer semantic equivalence, or create runtime relations.
+
+Traditional Chinese guide: [`docs/architecture-drift.zh-TW.md`](docs/architecture-drift.zh-TW.md).
+
 ## Adopt MSSP in an existing repository
 
 1. Run `mssp scan` to create a structural and dependency evidence inventory.
@@ -196,9 +236,10 @@ Traditional Chinese guide: [`docs/candidate-promotion.zh-TW.md`](docs/candidate-
 5. Complete approved contract drafts and obtain independent final approval before `mssp promote-candidate`.
 6. Register emitted manifests in `mssp.yaml` through an ordinary architecture change.
 7. Create and maintain FMS system narrative, module index, and architecture notes.
-8. Add SCL change contracts and DMS diagnostic contracts.
-9. Run `mssp lint` and `mssp island` in CI.
-10. Update MSSP-VT impact relations whenever compatibility changes.
+8. Run `mssp drift` after architecture changes and resolve drift or indeterminate evidence.
+9. Add SCL change contracts and DMS diagnostic contracts.
+10. Run `mssp lint` and `mssp island` in CI.
+11. Update MSSP-VT impact relations whenever compatibility changes.
 
 ## Module contract
 
@@ -273,8 +314,8 @@ The future `@eml/mssp-adapter` should translate EML AST and trace data into the 
 ## Repository map
 
 ```text
-schemas/                 Normative schemas for manifests, diagnostics, models, classification, and promotion review
-src/                     TypeScript core, scanner, classifier, promotion workflow, evidence helpers, and CLI
+schemas/                 Normative schemas for manifests, diagnostics, models, classification, promotion, and drift
+src/                     TypeScript core, scanner, classifier, promotion, drift analysis, evidence helpers, and CLI
 examples/hello-mssp/     Complete reference adoption
 spec/                    Method and interoperability specifications
 docs/                    Adoption and protocol guides, EML integration, whitepaper, roadmap
@@ -283,7 +324,7 @@ docs/                    Adoption and protocol guides, EML integration, whitepap
 
 ## Status
 
-`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, generated-source filtering, evidence-backed classification suggestions, and governed candidate review/promotion are implemented. Tree-sitter/compiler-grade dependency resolution, FMS/code drift analysis, and Git diff impact inference remain open.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, Repository Scanner foundation, `.gitignore` evidence, workspace discovery, static dependency scopes, generated-source filtering, evidence-backed classification suggestions, governed candidate review/promotion, and conservative FMS/code drift analysis are implemented. Tree-sitter/compiler-grade dependency resolution and Git diff impact inference remain open.
 
 ## License
 
