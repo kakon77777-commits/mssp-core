@@ -115,8 +115,8 @@ describe("Agent Skill Adapter v0.3", () => {
   it("does not turn tools, triggers, handoffs, permissions, or resources into normative relations", () => {
     const model = adaptAgentSkillMsspExport(fixture());
     expect(model.relations).toEqual([
-      expect.objectContaining({ kind: "affects", from: "core.planner", to: "skill.research" }),
       expect.objectContaining({ kind: "affected-by", from: "skill.research", to: "core.planner" }),
+      expect.objectContaining({ kind: "affects", from: "core.planner", to: "skill.research" }),
       expect.objectContaining({ kind: "requires", from: "skill.research", to: "core.planner" }),
     ]);
     expect(model.relations.every((relation) =>
