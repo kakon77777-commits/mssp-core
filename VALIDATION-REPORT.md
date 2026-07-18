@@ -34,7 +34,7 @@ mssp graph examples/hello-mssp                           PASS
 validation artifact upload                              PASS
 ```
 
-Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. Volatile workflow-run and artifact identifiers are maintained in the Draft PR description rather than this versioned report.
+Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. Volatile workflow-run and artifact identifiers belong in the Draft PR description, not this versioned report.
 
 ## Protocol and model conformance
 
