@@ -17,8 +17,8 @@ The implementation is validated from clean Draft PR merge-ref checkouts with com
 
 ```text
 npm ci --no-audit --no-fund                              PASS
-npm run typecheck                                        PASS — 11 test files, 41 tests
-npm test                                                 PASS
+npm run typecheck                                        PASS
+npm test                                                 PASS — 11 test files, 41 tests
 npm run build                                            PASS
 mssp lint examples/hello-mssp                            PASS
 mssp lint examples/hello-mssp --json                     PASS
