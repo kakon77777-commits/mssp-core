@@ -4,6 +4,7 @@ export * from "./model.js";
 export * from "./scanner.js";
 export * from "./classification.js";
 export * from "./classification-report.js";
+export * from "./promotion.js";
 export * from "./io.js";
 export * from "./validate.js";
 export * from "./graph.js";
