@@ -28,6 +28,7 @@ import type {
 import { scanRepository } from "./scanner.js";
 import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "./format.js";
 import { validateProject } from "./validate.js";
+import { buildVisualizationModel, visualizationToHtml } from "./visualization.js";
 
 const OPTIONS_WITH_VALUE = new Set([
   "--approval-rationale",
@@ -49,10 +50,11 @@ const OPTIONS_WITH_VALUE = new Set([
   "--reviewer",
   "--reviewer-kind",
   "--revision",
+  "--source-base",
 ]);
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp classify [repository] [--revision value] [--max-files number] [--out file]\n  mssp review-candidate [repository] --candidate id|path --decision approve|reject|defer --reviewer id --rationale text [--layer layer] [--out file]\n  mssp promote-candidate <review.json> --approver id --approval-rationale text --out module.yaml\n  mssp drift [project] [--revision value] [--max-files number] [--out file]\n  mssp impact [project] --base git-ref [--head git-ref] [--revision value] [--out file]\n  mssp viz [project] [--format html|json] [--revision value] [--source-base url] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init               Create an adoption-ready MSSP project skeleton.\n  lint               Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain            Print the architecture inventory for humans and agents.\n  model              Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan               Discover repository markers and unclassified module candidates as an Intermediate Model.\n  classify           Produce evidence-backed, review-required MSSP layer suggestions without promoting candidates.\n  review-candidate   Record an explicit reviewer decision and create a blocked contract draft for approved candidates.\n  promote-candidate  Emit a module manifest only after contract completion and independent final approval.\n  drift              Compare canonical FMS declarations, module manifests, and bounded source ownership without mutating the project.\n  impact             Map a direct Git comparison to module, MSSP-VT, compatibility, version, FMS, SCL, test, and island-review impact.\n  viz                Generate a read-only interactive architecture view with optional source navigation.\n  graph              Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island             Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -247,6 +249,33 @@ async function main(): Promise<number> {
     const report = analyzeGitDiffImpact(project, options);
     writeJsonOutput(report, valueAfter(args, "--out"), "MSSP Git diff impact report");
     return report.summary.ok ? 0 : 1;
+  }
+
+  if (command === "viz") {
+    const project = loadProject(projectArg);
+    const revision = valueAfter(args, "--revision");
+    const intermediate = buildIntermediateModel(project, revision ? { revision } : {});
+    const sourceBase = valueAfter(args, "--source-base");
+    const visualization = buildVisualizationModel(
+      intermediate,
+      sourceBase ? { sourceBase } : {},
+    );
+    const format = valueAfter(args, "--format") ?? "html";
+    if (format !== "html" && format !== "json") {
+      throw new Error(`Unsupported visualization format: ${format}`);
+    }
+    const output = format === "json"
+      ? `${JSON.stringify(visualization, null, 2)}\n`
+      : visualizationToHtml(visualization);
+    const out = valueAfter(args, "--out");
+    if (out) {
+      const target = resolve(out);
+      writeFileSync(target, output, "utf8");
+      process.stdout.write(`Wrote ${format} visualization to ${target}\n`);
+    } else {
+      process.stdout.write(output);
+    }
+    return 0;
   }
 
   if (command === "graph") {
