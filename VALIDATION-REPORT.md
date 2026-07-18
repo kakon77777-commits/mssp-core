@@ -34,26 +34,9 @@ mssp graph examples/hello-mssp                           PASS
 validation artifact upload                              PASS
 ```
 
-The implementation validation run was GitHub Actions run `29631332622` on head commit `b7849544f0f4fa1460577b8609f21b118b946df5`.
+Implementation behavior, including real Git addition/deletion transition tests, was validated by GitHub Actions run `29631332622` on head commit `b7849544f0f4fa1460577b8609f21b118b946df5`.
 
-Documentation synchronization was validated by GitHub Actions run `29631472328` on head commit `443107d63d1a95b72210495294492e2c1b756d6d`.
-
-The latest artifact contains:
-
-```text
-architecture-drift.json
-architecture.mmd
-classification-suggestions.json
-diagnostics.json
-git-diff-impact.json
-island-diagnostics.json
-intermediate-model.json
-promotion-review.json
-repository-scan.json
-```
-
-Artifact ID: `8425607729`  
-Artifact digest: `sha256:a93dbbefd80a2335d6e09bcddc77d370181bc1ca362b1850616a817976eebbdb`
+Subsequent documentation-only synchronization commits also passed the complete workflow. The validation identifiers recorded in the Draft PR description are the authoritative latest-branch references.
 
 ## Protocol and model conformance
 
