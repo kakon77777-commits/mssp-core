@@ -68,6 +68,9 @@ export const validateEmlAdapterInputSchema: ValidateFunction = ajv.compile(
 export const validatePythonAdapterInputSchema: ValidateFunction = ajv.compile(
   readSchema("python-adapter-input.schema.json"),
 );
+export const validateRustAdapterInputSchema: ValidateFunction = ajv.compile(
+  readSchema("rust-adapter-input.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
