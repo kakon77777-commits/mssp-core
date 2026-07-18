@@ -54,7 +54,17 @@
   - independent JSON Schema and normative specification;
   - `mssp classify` read-only CLI and CI artifact;
   - `autoPromotion: false` and `review-required` invariants.
-- [ ] Candidate-to-module review and promotion workflow.
+- [x] Candidate-to-module review and promotion workflow.
+  - explicit `approve`, `reject`, and `defer` review records;
+  - reviewer identity, rationale, conditions, and candidate/classification snapshots;
+  - deliberately blocked contract drafts with visible TODO obligations;
+  - promotion blockers recomputed at emission time;
+  - independent final approver separation;
+  - module Schema validation and provenance metadata;
+  - explicit output path with overwrite refusal;
+  - no automatic `mssp.yaml` registration or runtime relation creation;
+  - `mssp review-candidate` and `mssp promote-candidate` CLI commands;
+  - JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [ ] FMS/code consistency checks.
 - [ ] Git diff impact analysis using MSSP-VT.
 - [x] JSON diagnostic protocol for IDEs and agents.
