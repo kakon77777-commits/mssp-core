@@ -59,6 +59,9 @@ export const validateVisualizationSchema: ValidateFunction = ajv.compile(
 export const validateAdapterDescriptorSchema: ValidateFunction = ajv.compile(
   readSchema("adapter-descriptor.schema.json"),
 );
+export const validateAdapterConformanceSchema: ValidateFunction = ajv.compile(
+  readSchema("adapter-conformance.schema.json"),
+);
 export const validateEmlAdapterInputSchema: ValidateFunction = ajv.compile(
   readSchema("eml-adapter-input.schema.json"),
 );
