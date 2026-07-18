@@ -6,6 +6,7 @@ export * from "./declarative-adapter.js";
 export * from "./eml-adapter.js";
 export * from "./python-adapter.js";
 export * from "./rust-adapter.js";
+export * from "./godot-adapter.js";
 export * from "./adapter-registry.js";
 export * from "./scanner.js";
 export * from "./classification.js";
