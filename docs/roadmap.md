@@ -45,7 +45,15 @@
   - language-specific aliases and build configuration;
   - complete Git ignore equivalence;
   - generated-source provenance.
-- [ ] Evidence-backed layer classification suggestions.
+- [x] Evidence-backed layer classification suggestions.
+  - deterministic advisory rule engine;
+  - FMS, SCL, SMS, TMS, DMS, Router, Runtime, and `UNDETERMINED` hypotheses;
+  - support score, confidence band, alternative layers, counterevidence, and unresolved questions;
+  - aggregate repository/source-root exclusion;
+  - truncated-scan confidence downgrade;
+  - independent JSON Schema and normative specification;
+  - `mssp classify` read-only CLI and CI artifact;
+  - `autoPromotion: false` and `review-required` invariants.
 - [ ] Candidate-to-module review and promotion workflow.
 - [ ] FMS/code consistency checks.
 - [ ] Git diff impact analysis using MSSP-VT.
