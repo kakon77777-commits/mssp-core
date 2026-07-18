@@ -32,10 +32,18 @@
   - evidence-backed structural boundary confidence;
   - no automatic SMS/TMS classification;
   - `mssp scan` Intermediate Model output and CI artifact.
-- [ ] Dependency-aware boundary refinement.
-  - AST/import graph extraction;
-  - package workspace semantics;
-  - `.gitignore` and ecosystem ignore semantics;
+- [x] Static dependency-aware boundary refinement.
+  - root and nested `.gitignore` static evaluation;
+  - npm, pnpm, and Cargo workspace declarations;
+  - workspace-member boundary strengthening;
+  - JavaScript/TypeScript, Python, Go, Rust, and GDScript static reference extraction;
+  - internal, cross-boundary, workspace, external, and unresolved dependency scopes;
+  - conservative generated-source recognition and exclusion from import evidence;
+  - dependency evidence remains separate from declared runtime relations.
+- [ ] Compiler-grade dependency refinement.
+  - Tree-sitter or compiler AST extraction;
+  - language-specific aliases and build configuration;
+  - complete Git ignore equivalence;
   - generated-source provenance.
 - [ ] Evidence-backed layer classification suggestions.
 - [ ] Candidate-to-module review and promotion workflow.
