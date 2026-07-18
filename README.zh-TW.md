@@ -31,6 +31,8 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 欄
 - `mssp island`：執行 TMS 孤島規則檢查。
 - `mssp graph`：輸出 Mermaid 或 JSON 架構圖。
 - `mssp explain`：向人類與 Agent 輸出簡潔的架構清單。
+- `lint --json` 與 `island --json` 輸出 MSSP Diagnostic Protocol v0.2。
+- 公共診斷採穩定 `MSSP_*_NNN` 代碼，並以 `legacyCode` 保留 v0.1 內部代碼。
 - GitHub Actions 與 PR 架構審查模板。
 - `examples/hello-mssp` 完整參考專案。
 
@@ -43,6 +45,7 @@ npm install
 npm run build
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
+node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -51,10 +54,13 @@ node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architec
 
 ```bash
 npm run mssp -- lint examples/hello-mssp
+npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
+
+JSON 輸出遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。外部工具應讀取 `diagnostics[].code`；過渡期舊代碼保留在 `diagnostics[].legacyCode`。
 
 ## 如何把既有專案改成 MSSP
 
@@ -125,7 +131,7 @@ EML  = 語義表達、壓縮、可執行語言工具鏈
 
 未來 `@eml/mssp-adapter` 可將 EML AST、CTS 與 trace 轉換為 MSSP manifest 與診斷；但 `@mssp/core` 不得依賴 EML。
 
-詳細操作見 [`docs/GITHUB-WORKFLOW.zh-TW.md`](docs/GITHUB-WORKFLOW.zh-TW.md)。
+詳細操作見 [`docs/GITHUB-WORKFLOW.zh-TW.md`](docs/GITHUB-WORKFLOW.zh-TW.md)。診斷協定中文說明見 [`docs/diagnostic-protocol.zh-TW.md`](docs/diagnostic-protocol.zh-TW.md)。
 
 ## GitHub 實踐規則
 
@@ -136,6 +142,10 @@ EML  = 語義表達、壓縮、可執行語言工具鏈
 - 不可在 FMS 放入具體可執行流程。
 - Agent 不得同時提出、執行、驗證並自行批准高風險變更。
 - DMS 不得只回覆「完成」，必須留下可驗證狀態。
+
+## 目前狀態
+
+`v0.1.0` 是架構契約 MVP。v0.2 Repository Architecture Intelligence 已開始推進；目前先完成診斷協定地基，尚未宣稱 Scanner 與分類器完成。
 
 ## 授權
 
