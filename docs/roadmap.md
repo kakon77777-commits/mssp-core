@@ -65,7 +65,17 @@
   - no automatic `mssp.yaml` registration or runtime relation creation;
   - `mssp review-candidate` and `mssp promote-candidate` CLI commands;
   - JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
-- [ ] FMS/code consistency checks.
+- [x] FMS/code consistency and structural drift checks.
+  - canonical FMS document presence;
+  - conservative Markdown `ID`/`Layer` module-index parsing;
+  - missing, stale, duplicate, and layer-mismatched FMS index records;
+  - bounded executable-source inventory under configured layer roots;
+  - unowned and overlapping module-boundary findings;
+  - executable-source rejection evidence for FMS and SCL;
+  - explicit `drift` versus `indeterminate` states;
+  - `semanticEquivalence: false` and `autoMutation: false` invariants;
+  - stable `MSSP_DRIFT_001` through `MSSP_DRIFT_010` codes;
+  - `mssp drift`, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [ ] Git diff impact analysis using MSSP-VT.
 - [x] JSON diagnostic protocol for IDEs and agents.
   - stable `MSSP_*_NNN` codes;
@@ -108,7 +118,7 @@
 - [ ] Nested MSSP.
 - [ ] Multi-repository identity and ownership.
 - [ ] Module lifecycle and migration graph.
-- [ ] Architecture drift detection.
+- [ ] Historical and cross-version architecture drift baselines.
 
 ## v0.8 — Multi-subject and AI governance
 
