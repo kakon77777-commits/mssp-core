@@ -47,14 +47,16 @@ mssp adapt
 核心邊界：
 
 ```text
-Scanner 證據       ≠ 架構聲明
-Classification     ≠ Promotion
-Review Approval    ≠ Completed Contract
-Manifest Emission  ≠ Project Registration
-Drift Consistency  ≠ Semantic Equivalence
-Impact Detected    ≠ Incompatibility
-Visualization      ≠ Architecture Authority
-Adapter Metadata   ≠ Module Declaration 或 Permission Grant
+Scanner 證據          ≠ 架構聲明
+Classification        ≠ Promotion
+Review Approval       ≠ Completed Contract
+Manifest Emission     ≠ Project Registration
+Drift Consistency     ≠ Semantic Equivalence
+Impact Detected       ≠ Incompatibility
+Visualization         ≠ Architecture Authority
+Projection Grouping   ≠ Canonical Layer Mutation
+Hidden Renderer Data  ≠ Absent Architecture
+Adapter Metadata      ≠ Module Declaration 或 Permission Grant
 ```
 
 ## 快速開始
@@ -69,7 +71,7 @@ node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.
 node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
 node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
 node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
-node dist/cli.js viz examples/hello-mssp --format html --revision HEAD --out architecture.html
+node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
 node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
 
@@ -86,9 +88,9 @@ Validator / Graph / Visualization / IDE / Agent / Drift / Impact
 模型明確區分：
 
 ```text
-正式 Modules       與尚未分類的 Candidates
-Normative Relations 與 Scanner Discovery Evidence
-Portable Provenance 與本機環境狀態
+正式 Modules          與尚未分類的 Candidates
+Normative Relations  與 Scanner Discovery Evidence
+Portable Provenance  與本機環境狀態
 Source Representation 與 Architecture Approval
 ```
 
@@ -120,12 +122,42 @@ Scanner 可辨識常見 Node.js、Python、Rust、Go、Godot、JVM 與 .NET 標�
 ```bash
 node dist/cli.js viz examples/hello-mssp \
   --format html \
+  --view connectivity \
+  --large-graph-threshold 500 \
+  --initial-node-limit 200 \
+  --batch-size 200 \
+  --max-rendered-edges 2000 \
   --revision HEAD \
   --source-base https://github.com/OWNER/REPO/blob/BRANCH \
   --out architecture.html
 ```
 
-HTML 內含自己的 CSS、JavaScript 與 Model Payload，不載入 CDN、外部字型、分析服務或 Runtime Library。畫面支援搜尋、Layer Filter、Node Detail、Relation Drawing 與選擇性 Source Navigation。
+HTML 內含自己的 CSS、JavaScript 與 Model Payload，不載入 CDN、外部字型、分析服務或 Runtime Library。
+
+可重現的唯讀 Projection：
+
+```text
+layer         Canonical MSSP Layers
+status        declared / unclassified / unresolved
+risk          L0–L4 / UNSPECIFIED
+connectivity  isolated / leaf / connected / hub
+```
+
+每一種 Projection 都包含完整且相同的 Node 集合，而且每個 Node 只出現一次。Projection Group 不會改變 Node 的 Canonical Layer、Status、Source、Declaration 或 Relation。
+
+Risk View 不會替未聲明 Node 推測 Risk；Relation Degree 也不會被解讀為重要性、權力、品質或 Runtime 中心性。
+
+大型圖行為明確記錄於 `scale`：
+
+```text
+bounded-batch nodes
+visible-endpoints-only edges
+可調整初始 Node 數與每批增加量
+可調整單次最大 SVG Edge 數
+完整 Nodes 與 Edges 仍保存在內嵌 Model
+```
+
+Renderer 支援 Projection 切換、Projection Group Filter、搜尋、Node Detail、Relation Drawing、漸進式 `Show more` 與選擇性 Source Navigation。
 
 Visualization 固定保持：
 
@@ -232,7 +264,7 @@ Memory Policy       ≠ SCL Approval
 - [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
 - [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
 
-更多繁中說明位於 [`docs/`](docs/)，包括[綜合 Adapter 指南](docs/adapters.zh-TW.md)、[Godot Adapter 指南](docs/godot-adapter.zh-TW.md)與 [Agent Skill Adapter 指南](docs/agent-skill-adapter.zh-TW.md)。
+更多繁中說明位於 [`docs/`](docs/)，包括[Visualization 指南](docs/visualization.zh-TW.md)、[綜合 Adapter 指南](docs/adapters.zh-TW.md)、[Godot Adapter 指南](docs/godot-adapter.zh-TW.md)與 [Agent Skill Adapter 指南](docs/agent-skill-adapter.zh-TW.md)。
 
 ## 倉庫地圖
 
@@ -254,8 +286,8 @@ docs/                            Adoption、Roadmap 與研究指南
 
 - v0.1 Architecture Contract MVP：完成。
 - v0.2 主要 Repository Intelligence Vertical Slices：完成。
-- v0.3 Visualization Foundation 與五個 Reference Adapter Vertical Slices：完成。
-- Multi-view Layout 與 Large-graph Performance Refinement：尚未完成。
+- v0.3 Visualization、Multi-view／Large-graph Foundation 與五個 Reference Adapter Vertical Slices：完成。
+- Canvas／WebGL Virtualization、Worker-based Layout、Clustering 與實測 Browser Performance Guarantee 仍在目前 Visualization Renderer 範圍之外。
 - Compiler-grade AST、完整 Alias／Build Graph、完整 Git-ignore 等價、Generated-source Provenance、Runtime DMS Transport 與 Automatic Semantic-version Selection 仍在目前實作範圍之外。
 
 參閱 [Roadmap](docs/roadmap.md) 與 [Validation Report](VALIDATION-REPORT.md)。
