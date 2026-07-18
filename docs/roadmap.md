@@ -20,11 +20,25 @@
   - deterministic JSON representation;
   - portable source references and optional revision;
   - normalized project, layer, module, policy, dependency, and MSSP-VT data;
+  - explicit separation between declared modules and unclassified candidates;
   - evidence records and adapter identity;
   - JSON Schema, specification, CLI export, and conformance tests;
   - architecture graph generated from the Intermediate Model.
-- [ ] Reverse-discover candidate modules from repositories.
+- [x] Repository Scanner foundation.
+  - deterministic bounded file inventory;
+  - source-language inventory;
+  - Node, Python, Rust, Go, Godot, JVM, and .NET project markers;
+  - repository, package, source-root, and directory candidates;
+  - evidence-backed structural boundary confidence;
+  - no automatic SMS/TMS classification;
+  - `mssp scan` Intermediate Model output and CI artifact.
+- [ ] Dependency-aware boundary refinement.
+  - AST/import graph extraction;
+  - package workspace semantics;
+  - `.gitignore` and ecosystem ignore semantics;
+  - generated-source provenance.
 - [ ] Evidence-backed layer classification suggestions.
+- [ ] Candidate-to-module review and promotion workflow.
 - [ ] FMS/code consistency checks.
 - [ ] Git diff impact analysis using MSSP-VT.
 - [x] JSON diagnostic protocol for IDEs and agents.
