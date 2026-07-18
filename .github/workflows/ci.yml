@@ -38,12 +38,15 @@ jobs:
       - run: node dist/cli.js review-candidate . --candidate candidate.repository --decision defer --reviewer ci-architecture-reviewer --reviewer-kind agent --rationale "Aggregate repository boundaries require architecture review." --reviewed-at "2026-07-18T00:00:00.000Z" --revision "${{ github.sha }}" --max-files 10000 --out promotion-review.json
       - run: node dist/cli.js drift examples/hello-mssp --revision "${{ github.sha }}" --max-files 10000 --out architecture-drift.json
       - run: node dist/cli.js impact examples/hello-mssp --base "HEAD^1" --head "HEAD" --revision "${{ github.sha }}" --out git-diff-impact.json
+      - run: node dist/cli.js viz examples/hello-mssp --format json --revision "${{ github.sha }}" --source-base "https://github.com/${{ github.repository }}/blob/${{ github.sha }}" --out visualization.json
+      - run: node dist/cli.js viz examples/hello-mssp --format html --revision "${{ github.sha }}" --source-base "https://github.com/${{ github.repository }}/blob/${{ github.sha }}" --out architecture.html
       - run: node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
       - uses: actions/upload-artifact@v4
         with:
           name: mssp-validation-artifacts
           path: |
             architecture-drift.json
+            architecture.html
             architecture.mmd
             classification-suggestions.json
             diagnostics.json
@@ -52,3 +55,4 @@ jobs:
             intermediate-model.json
             promotion-review.json
             repository-scan.json
+            visualization.json
