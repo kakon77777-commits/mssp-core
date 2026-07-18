@@ -21,6 +21,22 @@ import type {
   ModelSourceReference,
   MsspIntermediateModel,
 } from "./model.js";
+import {
+  GitIgnoreEvaluator,
+  discoverStaticDependencies,
+  discoverWorkspaces,
+  generatedSummary,
+  isGeneratedSource,
+  refineCandidatesWithWorkspaces,
+} from "./repository-evidence.js";
+import type {
+  RepositoryEvidenceFile,
+  RepositoryGeneratedSummary,
+  RepositoryIgnoreSummary,
+  RepositoryStaticDependency,
+  RepositoryWorkspace,
+  ScannerSourceFactory,
+} from "./repository-evidence.js";
 
 const ADAPTER = "repository-scanner";
 const IMPLEMENTATION_NAME = "@evemisslab/mssp-core";
@@ -107,18 +123,12 @@ const MARKERS = new Map<string, MarkerSpec>([
   ["build.gradle.kts", { kind: "gradle-build", ecosystem: "jvm", format: "kotlin" }],
   ["go.mod", { kind: "go-module", ecosystem: "go", format: "go-mod" }],
   ["package.json", { kind: "node-package", ecosystem: "node", format: "json" }],
+  ["pnpm-workspace.yaml", { kind: "pnpm-workspace", ecosystem: "node", format: "yaml" }],
   ["pom.xml", { kind: "maven-project", ecosystem: "jvm", format: "xml" }],
   ["project.godot", { kind: "godot-project", ecosystem: "godot", format: "godot" }],
   ["pyproject.toml", { kind: "python-project", ecosystem: "python", format: "toml" }],
   ["setup.py", { kind: "python-setup", ecosystem: "python", format: "python" }],
 ]);
-
-interface ScannedFile {
-  absolute: string;
-  path: string;
-  extension: string;
-  language?: string;
-}
 
 interface MarkerMetadata {
   name?: string;
@@ -133,6 +143,24 @@ interface CandidateDraft {
   evidence: ModelEvidence[];
 }
 
+interface CollectedRepository {
+  files: RepositoryEvidenceFile[];
+  directories: string[];
+  truncated: boolean;
+  ignore: RepositoryIgnoreSummary;
+}
+
+export interface RepositoryDiscovery extends IntermediateDiscovery {
+  ignore: RepositoryIgnoreSummary;
+  generated: RepositoryGeneratedSummary;
+  workspaces: RepositoryWorkspace[];
+  dependencies: RepositoryStaticDependency[];
+}
+
+export interface RepositoryScanModel extends Omit<MsspIntermediateModel, "discovery"> {
+  discovery: RepositoryDiscovery;
+}
+
 export interface RepositoryScannerOptions {
   revision?: string;
   maxFiles?: number;
@@ -145,7 +173,7 @@ function portablePath(root: string, value: string): string {
   return path || ".";
 }
 
-function source(
+function scannerSource(
   uri: string,
   format: string,
   revision?: string,
@@ -163,13 +191,16 @@ function source(
 function collectRepository(
   root: string,
   maxFiles: number,
-): { files: ScannedFile[]; directories: string[]; truncated: boolean } {
-  const files: ScannedFile[] = [];
+  source: ScannerSourceFactory,
+): CollectedRepository {
+  const files: RepositoryEvidenceFile[] = [];
   const directories = new Set<string>(["."]);
+  const ignore = new GitIgnoreEvaluator(root, source);
   let truncated = false;
 
   function walk(directory: string): void {
     if (truncated) return;
+    ignore.enter(directory);
     const entries = readdirSync(directory, { withFileTypes: true })
       .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -177,22 +208,35 @@ function collectRepository(
       if (truncated) return;
       if (entry.isSymbolicLink()) continue;
       const absolute = join(directory, entry.name);
+      const path = portablePath(root, absolute);
+
       if (entry.isDirectory()) {
         if (IGNORED_DIRECTORIES.has(entry.name)) continue;
-        directories.add(portablePath(root, absolute));
+        if (ignore.isIgnored(path)) {
+          ignore.ignoredDirectories += 1;
+          continue;
+        }
+        directories.add(path);
         walk(absolute);
         continue;
       }
+
       if (!entry.isFile()) continue;
+      if (ignore.isIgnored(path)) {
+        ignore.ignoredFiles += 1;
+        continue;
+      }
       if (files.length >= maxFiles) {
         truncated = true;
         return;
       }
+
       const extension = extname(entry.name).toLowerCase();
-      const record: ScannedFile = {
+      const record: RepositoryEvidenceFile = {
         absolute,
-        path: portablePath(root, absolute),
+        path,
         extension,
+        generated: isGeneratedSource(path),
       };
       const language = LANGUAGE_BY_EXTENSION.get(extension);
       if (language) record.language = language;
@@ -205,6 +249,7 @@ function collectRepository(
     files: files.sort((a, b) => a.path.localeCompare(b.path)),
     directories: [...directories].sort((a, b) => a.localeCompare(b)),
     truncated,
+    ignore: ignore.summary(),
   };
 }
 
@@ -221,80 +266,76 @@ function markerSpec(path: string): MarkerSpec | undefined {
   return undefined;
 }
 
-function tomlSection(text: string, name: string): string {
-  const escaped = name.split(".").join("\\.");
-  const pattern = new RegExp(`\\[${escaped}\\]([\\s\\S]*?)(?=\\n\\s*\\[|$)`);
-  return pattern.exec(text)?.[1] ?? "";
+function section(text: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\[${escaped}\\]([\\s\\S]*?)(?=\\n\\s*\\[|$)`).exec(text)?.[1] ?? "";
 }
 
 function quotedValue(text: string, key: string): string | undefined {
-  const pattern = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`, "m");
-  return pattern.exec(text)?.[1];
+  return new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`, "m").exec(text)?.[1];
 }
 
-function parseMarkerMetadata(file: ScannedFile, spec: MarkerSpec): MarkerMetadata {
+function parseMarkerMetadata(file: RepositoryEvidenceFile, spec: MarkerSpec): MarkerMetadata {
   if (statSync(file.absolute).size > 1_000_000) return {};
   const text = readFileSync(file.absolute, "utf8");
-  const fileName = posix.basename(file.path);
+  const name = posix.basename(file.path);
 
-  if (fileName === "package.json") {
-    try {
-      const parsed = JSON.parse(text) as { name?: unknown; version?: unknown };
+  try {
+    if (name === "package.json") {
+      const value = JSON.parse(text) as { name?: unknown; version?: unknown };
       const metadata: MarkerMetadata = {};
-      if (typeof parsed.name === "string" && parsed.name) metadata.name = parsed.name;
-      if (typeof parsed.version === "string" && parsed.version) metadata.version = parsed.version;
+      if (typeof value.name === "string" && value.name) metadata.name = value.name;
+      if (typeof value.version === "string" && value.version) metadata.version = value.version;
       return metadata;
-    } catch {
-      return {};
     }
+  } catch {
+    return {};
   }
 
-  if (fileName === "pyproject.toml") {
-    const project = tomlSection(text, "project");
-    const poetry = tomlSection(text, "tool.poetry");
+  if (name === "pyproject.toml") {
+    const project = section(text, "project");
+    const poetry = section(text, "tool.poetry");
     const metadata: MarkerMetadata = {};
-    const name = quotedValue(project, "name") ?? quotedValue(poetry, "name");
-    const version = quotedValue(project, "version") ?? quotedValue(poetry, "version");
-    if (name) metadata.name = name;
-    if (version) metadata.version = version;
+    const inferredName = quotedValue(project, "name") ?? quotedValue(poetry, "name");
+    const inferredVersion = quotedValue(project, "version") ?? quotedValue(poetry, "version");
+    if (inferredName) metadata.name = inferredName;
+    if (inferredVersion) metadata.version = inferredVersion;
     return metadata;
   }
 
-  if (fileName === "Cargo.toml") {
-    const packageSection = tomlSection(text, "package");
+  if (name === "Cargo.toml") {
+    const packageSection = section(text, "package");
     const metadata: MarkerMetadata = {};
-    const name = quotedValue(packageSection, "name");
-    const version = quotedValue(packageSection, "version");
-    if (name) metadata.name = name;
-    if (version) metadata.version = version;
+    const inferredName = quotedValue(packageSection, "name");
+    const inferredVersion = quotedValue(packageSection, "version");
+    if (inferredName) metadata.name = inferredName;
+    if (inferredVersion) metadata.version = inferredVersion;
     return metadata;
   }
 
-  if (fileName === "go.mod") {
-    const name = /^\s*module\s+([^\s]+)\s*$/m.exec(text)?.[1];
-    return name ? { name } : {};
+  if (name === "go.mod") {
+    const moduleName = /^\s*module\s+([^\s]+)\s*$/m.exec(text)?.[1];
+    return moduleName ? { name: moduleName } : {};
   }
 
-  if (fileName === "project.godot") {
-    const name = /^\s*config\/name\s*=\s*["']([^"']+)["']/m.exec(text)?.[1];
-    return name ? { name } : {};
+  if (name === "project.godot") {
+    const projectName = /^\s*config\/name\s*=\s*["']([^"']+)["']/m.exec(text)?.[1];
+    return projectName ? { name: projectName } : {};
   }
 
   if (spec.kind === "maven-project") {
-    const metadata: MarkerMetadata = {};
-    const name = /<artifactId>\s*([^<]+)\s*<\/artifactId>/.exec(text)?.[1];
+    const artifact = /<artifactId>\s*([^<]+)\s*<\/artifactId>/.exec(text)?.[1];
     const version = /<version>\s*([^<]+)\s*<\/version>/.exec(text)?.[1];
-    if (name) metadata.name = name;
+    const metadata: MarkerMetadata = {};
+    if (artifact) metadata.name = artifact;
     if (version) metadata.version = version;
     return metadata;
   }
 
   if (spec.kind === "dotnet-project") {
-    const metadata: MarkerMetadata = {
-      name: /<AssemblyName>\s*([^<]+)\s*<\/AssemblyName>/.exec(text)?.[1]
-        ?? fileName.replace(/\.csproj$/, ""),
-    };
+    const assembly = /<AssemblyName>\s*([^<]+)\s*<\/AssemblyName>/.exec(text)?.[1];
     const version = /<Version>\s*([^<]+)\s*<\/Version>/.exec(text)?.[1];
+    const metadata: MarkerMetadata = { name: assembly ?? name.replace(/\.csproj$/, "") };
     if (version) metadata.version = version;
     return metadata;
   }
@@ -303,8 +344,8 @@ function parseMarkerMetadata(file: ScannedFile, spec: MarkerSpec): MarkerMetadat
 }
 
 function discoverMarkers(
-  files: readonly ScannedFile[],
-  revision?: string,
+  files: readonly RepositoryEvidenceFile[],
+  source: ScannerSourceFactory,
 ): IntermediateDiscoveryMarker[] {
   const markers: IntermediateDiscoveryMarker[] = [];
   for (const file of files) {
@@ -316,7 +357,7 @@ function discoverMarkers(
       ecosystem: spec.ecosystem,
       path: file.path,
       boundaryPath: posix.dirname(file.path),
-      source: source(file.path, spec.format, revision),
+      source: source(file.path, spec.format),
     };
     if (metadata.name) marker.name = metadata.name;
     if (metadata.version) marker.version = metadata.version;
@@ -327,7 +368,7 @@ function discoverMarkers(
   );
 }
 
-function languageInventory(files: readonly ScannedFile[]): IntermediateDiscoveryLanguage[] {
+function languageInventory(files: readonly RepositoryEvidenceFile[]): IntermediateDiscoveryLanguage[] {
   const values = new Map<string, { files: number; extensions: Set<string> }>();
   for (const file of files) {
     if (!file.language) continue;
@@ -362,7 +403,7 @@ function candidateId(path: string): string {
   return `candidate.${path.split("/").map(slug).join(".")}`;
 }
 
-function filesWithin(files: readonly ScannedFile[], path: string): ScannedFile[] {
+function filesWithin(files: readonly RepositoryEvidenceFile[], path: string): RepositoryEvidenceFile[] {
   if (path === ".") return [...files];
   const prefix = `${path}/`;
   return files.filter((file) => file.path.startsWith(prefix));
@@ -374,10 +415,10 @@ function evidenceKey(evidence: ModelEvidence): string {
 
 function discoverCandidates(
   root: string,
-  files: readonly ScannedFile[],
+  files: readonly RepositoryEvidenceFile[],
   directories: readonly string[],
   markers: readonly IntermediateDiscoveryMarker[],
-  revision?: string,
+  source: ScannerSourceFactory,
 ): IntermediateCandidate[] {
   const drafts = new Map<string, CandidateDraft>();
   const priority: Record<CandidateBoundaryKind, number> = {
@@ -396,10 +437,7 @@ function discoverCandidates(
     if (priority[draft.boundaryKind] > priority[existing.boundaryKind]) {
       existing.boundaryKind = draft.boundaryKind;
     }
-    existing.boundaryConfidence = Math.max(
-      existing.boundaryConfidence,
-      draft.boundaryConfidence,
-    );
+    existing.boundaryConfidence = Math.max(existing.boundaryConfidence, draft.boundaryConfidence);
     if (!existing.name && draft.name) existing.name = draft.name;
     const seen = new Set(existing.evidence.map(evidenceKey));
     for (const evidence of draft.evidence) {
@@ -411,7 +449,6 @@ function discoverCandidates(
     }
   }
 
-  const rootSource = source(".", "directory", revision);
   upsert({
     path: ".",
     name: basename(root),
@@ -420,7 +457,7 @@ function discoverCandidates(
     evidence: [{
       kind: "source",
       message: "Repository root is an explicit scan boundary.",
-      source: rootSource,
+      source: source(".", "directory"),
     }],
   });
 
@@ -448,7 +485,6 @@ function discoverCandidates(
     const contained = filesWithin(files, directory);
 
     if (SOURCE_ROOTS.has(name) && contained.some((file) => file.language)) {
-      const candidateSource = source(directory, "directory", revision);
       upsert({
         path: directory,
         boundaryKind: "source-root",
@@ -456,7 +492,7 @@ function discoverCandidates(
         evidence: [{
           kind: "inference",
           message: `${directory} is a conventional source root containing source files.`,
-          source: candidateSource,
+          source: source(directory, "directory"),
           data: { convention: name },
         }],
       });
@@ -466,7 +502,6 @@ function discoverCandidates(
     const children = directories.filter((value) => posix.dirname(value) === directory);
     for (const child of children) {
       if (!filesWithin(files, child).some((file) => file.language)) continue;
-      const candidateSource = source(child, "directory", revision);
       upsert({
         path: child,
         boundaryKind: "directory",
@@ -474,7 +509,7 @@ function discoverCandidates(
         evidence: [{
           kind: "inference",
           message: `${child} is a source-bearing child of the conventional ${name} container.`,
-          source: candidateSource,
+          source: source(child, "directory"),
           data: { container: directory },
         }],
       });
@@ -497,7 +532,7 @@ function discoverCandidates(
         fileCount: contained.length,
         sourceFileCount: contained.filter((file) => file.language).length,
         languages,
-        source: source(draft.path, "directory", revision),
+        source: source(draft.path, "directory"),
         evidence: draft.evidence.sort((a, b) => evidenceKey(a).localeCompare(evidenceKey(b))),
       };
     })
@@ -537,24 +572,35 @@ function chooseIdentity(
 export function scanRepository(
   input = process.cwd(),
   options: RepositoryScannerOptions = {},
-): MsspIntermediateModel {
+): RepositoryScanModel {
   const root = resolve(input);
   const maxFiles = options.maxFiles ?? 50_000;
   if (!Number.isInteger(maxFiles) || maxFiles < 1) {
     throw new Error("Repository scanner maxFiles must be a positive integer.");
   }
 
-  const collected = collectRepository(root, maxFiles);
-  const markers = discoverMarkers(collected.files, options.revision);
-  const candidates = discoverCandidates(
+  const source: ScannerSourceFactory = (uri, format) => scannerSource(uri, format, options.revision);
+  const collected = collectRepository(root, maxFiles, source);
+  const markers = discoverMarkers(collected.files, source);
+  const initialCandidates = discoverCandidates(
     root,
     collected.files,
     collected.directories,
     markers,
-    options.revision,
+    source,
+  );
+  const workspaces = discoverWorkspaces(collected.files, initialCandidates, source);
+  const candidates = refineCandidatesWithWorkspaces(initialCandidates, workspaces)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const dependencies = discoverStaticDependencies(
+    collected.files,
+    candidates,
+    markers,
+    workspaces,
+    source,
   );
   const identity = chooseIdentity(root, markers);
-  const discovery: IntermediateDiscovery = {
+  const discovery: RepositoryDiscovery = {
     root: ".",
     truncated: collected.truncated,
     ignoredDirectories: [...IGNORED_DIRECTORIES].sort((a, b) => a.localeCompare(b)),
@@ -564,6 +610,10 @@ export function scanRepository(
       languages: languageInventory(collected.files),
     },
     markers,
+    ignore: collected.ignore,
+    generated: generatedSummary(collected.files),
+    workspaces,
+    dependencies,
   };
   if (options.revision) discovery.revision = options.revision;
 
@@ -577,7 +627,7 @@ export function scanRepository(
     },
     project: {
       ...identity,
-      source: source(".", "directory", options.revision),
+      source: source(".", "directory"),
       metadata: {
         inferred: true,
         classificationStatus: "unclassified",
