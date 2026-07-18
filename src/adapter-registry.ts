@@ -6,6 +6,11 @@ import {
   PYTHON_ADAPTER_ID,
   adaptPythonMsspExport,
 } from "./python-adapter.js";
+import {
+  RUST_ADAPTER_DESCRIPTOR,
+  RUST_ADAPTER_ID,
+  adaptRustMsspExport,
+} from "./rust-adapter.js";
 
 export interface RegisteredJsonAdapter {
   aliases: string[];
@@ -23,6 +28,11 @@ const REGISTERED_ADAPTERS: RegisteredJsonAdapter[] = [
     aliases: ["python", "py", PYTHON_ADAPTER_ID],
     descriptor: PYTHON_ADAPTER_DESCRIPTOR,
     adapt: adaptPythonMsspExport,
+  },
+  {
+    aliases: ["rust", "rs", RUST_ADAPTER_ID],
+    descriptor: RUST_ADAPTER_DESCRIPTOR,
+    adapt: adaptRustMsspExport,
   },
 ].sort((a, b) => a.descriptor.id.localeCompare(b.descriptor.id));
 
