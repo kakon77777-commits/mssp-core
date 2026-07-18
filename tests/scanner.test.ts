@@ -25,7 +25,7 @@ function fixture(): string {
   }, null, 2));
   writeFileSync(
     join(root, "src", "core", "index.ts"),
-    "import { plugin } from '@scan/plugin';\nimport { util } from './util';\nexport const core = plugin + util;\n",
+    "import { plugin } from '@scan/plugin';\nimport { util } from './util.js';\nexport const core = plugin + util;\n",
   );
   writeFileSync(join(root, "src", "core", "util.ts"), "export const util = 1;\n");
   writeFileSync(
@@ -47,6 +47,25 @@ function fixture(): string {
   writeFileSync(join(root, "ignored-by-rule", "index.ts"), "throw new Error('ignored');\n");
   writeFileSync(join(root, "node_modules", "ignored", "index.ts"), "throw new Error('ignored');\n");
   writeFileSync(join(root, "dist", "generated.js"), "export const generated = true;\n");
+  return root;
+}
+
+function goFixture(): string {
+  const root = mkdtempSync(join(tmpdir(), "mssp-go-scan-"));
+  writeFileSync(join(root, "go.mod"), "module example.com/demo\n\ngo 1.24\n");
+  writeFileSync(join(root, "main.go"), [
+    "package main",
+    "",
+    "import (",
+    "  \"fmt\"",
+    "  alias \"example.com/dependency\"",
+    ")",
+    "",
+    "func main() {",
+    "  fmt.Println(\"not-an-import\")",
+    "}",
+    "",
+  ].join("\n"));
   return root;
 }
 
@@ -114,10 +133,19 @@ describe("MSSP dependency-aware repository scanner", () => {
       .map((dependency) => dependency.to);
 
     expect(workspaceDependency?.specifiers).toEqual(["@scan/plugin"]);
-    expect(internalDependency?.specifiers).toEqual(["./util"]);
+    expect(internalDependency?.specifiers).toEqual(["./util.js"]);
     expect(externalTargets).toContain("external:left-pad");
     expect(externalTargets).toContain("external:requests");
     expect(model.relations).toEqual([]);
+  });
+
+  it("does not treat ordinary Go string literals as imports", () => {
+    const model = scanRepository(goFixture());
+    const targets = model.discovery.dependencies.map((dependency) => dependency.to);
+
+    expect(targets).toContain("external:fmt");
+    expect(targets).toContain("external:example.com/dependency");
+    expect(targets).not.toContain("external:not-an-import");
   });
 
   it("records generated sources but excludes them from static import evidence", () => {
