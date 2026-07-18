@@ -29,10 +29,12 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 欄
 - `mssp init`：建立可直接採用的 MSSP 專案骨架。
 - `mssp lint`：檢查 YAML Schema、層級位置、依賴方向、FMS 純元資料、循環依賴、入口檔與 MSSP-VT 關聯。
 - `mssp island`：執行 TMS 孤島規則檢查。
-- `mssp graph`：輸出 Mermaid 或 JSON 架構圖。
+- `mssp model`：輸出可重現、語言無關的 MSSP Intermediate Model。
+- `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
 - `mssp explain`：向人類與 Agent 輸出簡潔的架構清單。
 - `lint --json` 與 `island --json` 輸出 MSSP Diagnostic Protocol v0.2。
 - 公共診斷採穩定 `MSSP_*_NNN` 代碼，並以 `legacyCode` 保留 v0.1 內部代碼。
+- 中介模型具有可攜來源位置、明確 dependency／MSSP-VT 關係及證據紀錄。
 - GitHub Actions 與 PR 架構審查模板。
 - `examples/hello-mssp` 完整參考專案。
 
@@ -46,6 +48,7 @@ npm run build
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project --json
+node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -55,12 +58,15 @@ node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architec
 ```bash
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- lint examples/hello-mssp --json
+npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
 
-JSON 輸出遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。外部工具應讀取 `diagnostics[].code`；過渡期舊代碼保留在 `diagnostics[].legacyCode`。
+診斷 JSON 遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。外部工具應讀取 `diagnostics[].code`；過渡期舊代碼保留在 `diagnostics[].legacyCode`。
+
+`model` 指令輸出 [`MSSP Intermediate Model v0.2`](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)，作為 manifest、Repository Scanner、語言 Adapter、IDE、Agent、架構圖與未來 impact analysis 的共同交換格式。
 
 ## 如何把既有專案改成 MSSP
 
@@ -112,6 +118,22 @@ changeImpact:
 maintainer: example-team
 ```
 
+## 中立中介模型邊界
+
+不同來源都應轉成同一模型：
+
+```text
+MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
+                              ↓
+                  MSSP Intermediate Model
+                              ↓
+        Validator / Graph / IDE / Agent / Impact Analysis
+```
+
+參考實作的輸出是可重現的，不暴露本機絕對路徑，並保留來源與證據。架構圖產生器已經改為讀取中介模型，而不是直接解析 manifest 結構。
+
+中文詳細說明見 [`docs/intermediate-model.zh-TW.md`](docs/intermediate-model.zh-TW.md)。
+
 ## 孤島測試
 
 TMS 在以下最小環境仍可被理解、載入與驗證，才算通過：
@@ -129,7 +151,7 @@ MSSP = 架構組織、能力定位、子集治理、系統導航
 EML  = 語義表達、壓縮、可執行語言工具鏈
 ```
 
-未來 `@eml/mssp-adapter` 可將 EML AST、CTS 與 trace 轉換為 MSSP manifest 與診斷；但 `@mssp/core` 不得依賴 EML。
+未來 `@eml/mssp-adapter` 應將 EML AST、CTS 與 trace 轉換為 MSSP Intermediate Model 與 Diagnostic Protocol；MSSP Core 本身不得依賴 EML。
 
 詳細操作見 [`docs/GITHUB-WORKFLOW.zh-TW.md`](docs/GITHUB-WORKFLOW.zh-TW.md)。診斷協定中文說明見 [`docs/diagnostic-protocol.zh-TW.md`](docs/diagnostic-protocol.zh-TW.md)。
 
@@ -145,7 +167,7 @@ EML  = 語義表達、壓縮、可執行語言工具鏈
 
 ## 目前狀態
 
-`v0.1.0` 是架構契約 MVP。v0.2 Repository Architecture Intelligence 已開始推進；目前先完成診斷協定地基，尚未宣稱 Scanner 與分類器完成。
+`v0.1.0` 是架構契約 MVP。v0.2 Repository Architecture Intelligence 已完成 Diagnostic Protocol 與語言無關 Intermediate Model 地基；Repository Scanner、有證據的分類、FMS／程式碼漂移與 Git diff impact inference 尚未完成。
 
 ## 授權
 
