@@ -7,11 +7,12 @@ import { initializeProject } from "./init.js";
 import { loadProject } from "./io.js";
 import { runIslandTests } from "./island.js";
 import { buildIntermediateModel } from "./model.js";
+import { scanRepository } from "./scanner.js";
 import { formatDiagnostic, formatProjectSummary, formatValidationReport } from "./format.js";
 import { validateProject } from "./validate.js";
 
 function usage(): string {
-  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  model     Export the deterministic, language-neutral MSSP Intermediate Model.\n  graph     Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
+  return `MSSP Core MVP\n\nUsage:\n  mssp init <directory>\n  mssp lint [project] [--json]\n  mssp explain [project]\n  mssp model [project] [--revision value] [--out file]\n  mssp scan [repository] [--revision value] [--max-files number] [--out file]\n  mssp graph [project] [--format mermaid|json] [--out file]\n  mssp island [project] [--module module.id] [--json]\n\nCommands:\n  init      Create an adoption-ready MSSP project skeleton.\n  lint      Validate schemas, layer boundaries, dependency direction, FMS purity, and MSSP-VT references.\n  explain   Print the architecture inventory for humans and agents.\n  model     Export the deterministic, language-neutral MSSP Intermediate Model from manifests.\n  scan      Discover repository markers and unclassified module candidates as an Intermediate Model.\n  graph     Generate a Mermaid or JSON dependency graph from the Intermediate Model.\n  island    Verify that each TMS can stand on SMS dependencies alone.\n\nJSON diagnostics:\n  --json emits MSSP Diagnostic Protocol v0.2 envelopes with stable MSSP_* codes.\n`;
 }
 
 function valueAfter(args: string[], name: string): string | undefined {
@@ -25,12 +26,23 @@ function positional(args: string[]): string[] {
     const value = args[i];
     if (!value) continue;
     if (value.startsWith("--")) {
-      if (["--format", "--out", "--module", "--revision"].includes(value)) i += 1;
+      if (["--format", "--out", "--module", "--revision", "--max-files"].includes(value)) i += 1;
       continue;
     }
     result.push(value);
   }
   return result;
+}
+
+function writeJsonOutput(value: unknown, out: string | undefined, label: string): void {
+  const output = `${JSON.stringify(value, null, 2)}\n`;
+  if (out) {
+    const target = resolve(out);
+    writeFileSync(target, output, "utf8");
+    process.stdout.write(`Wrote ${label} to ${target}\n`);
+  } else {
+    process.stdout.write(output);
+  }
 }
 
 async function main(): Promise<number> {
@@ -81,15 +93,21 @@ async function main(): Promise<number> {
     const project = loadProject(projectArg);
     const revision = valueAfter(args, "--revision");
     const model = buildIntermediateModel(project, revision ? { revision } : {});
-    const output = `${JSON.stringify(model, null, 2)}\n`;
-    const out = valueAfter(args, "--out");
-    if (out) {
-      const target = resolve(out);
-      writeFileSync(target, output, "utf8");
-      process.stdout.write(`Wrote MSSP Intermediate Model to ${target}\n`);
-    } else {
-      process.stdout.write(output);
-    }
+    writeJsonOutput(model, valueAfter(args, "--out"), "MSSP Intermediate Model");
+    return 0;
+  }
+
+  if (command === "scan") {
+    const revision = valueAfter(args, "--revision");
+    const maxFilesValue = valueAfter(args, "--max-files");
+    const options: {
+      revision?: string;
+      maxFiles?: number;
+    } = {};
+    if (revision) options.revision = revision;
+    if (maxFilesValue) options.maxFiles = Number(maxFilesValue);
+    const model = scanRepository(projectArg, options);
+    writeJsonOutput(model, valueAfter(args, "--out"), "MSSP repository scan model");
     return 0;
   }
 
