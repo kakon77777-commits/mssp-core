@@ -29,6 +29,7 @@ MSSP-VT is represented by each module's `version`, `compatibility`, and `changeI
 - `mssp init`: create an adoption-ready project skeleton.
 - `mssp adapters`: list machine-readable adapter descriptors.
 - `mssp adapt eml`: translate a versioned EML semantic export into the Intermediate Model.
+- `mssp adapt python`: translate a versioned Python semantic export into the Intermediate Model; `py` is also accepted.
 - `mssp lint`: validate schemas, layer placement, dependency direction, FMS purity, cycles, entries, and MSSP-VT references.
 - `mssp island`: verify TMS island-test obligations.
 - `mssp model`: export the deterministic, language-neutral Intermediate Model.
@@ -54,6 +55,9 @@ node dist/cli.js adapters --json --out /tmp/adapter-descriptors.json
 node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
   --revision HEAD \
   --out /tmp/eml-intermediate-model.json
+node dist/cli.js adapt python examples/python-adapter/semantic-export.json \
+  --revision HEAD \
+  --out /tmp/python-intermediate-model.json
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
@@ -88,6 +92,7 @@ During repository development:
 ```bash
 npm run mssp -- adapters --json
 npm run mssp -- adapt eml examples/eml-adapter/semantic-export.json --revision HEAD
+npm run mssp -- adapt python examples/python-adapter/semantic-export.json --revision HEAD
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
@@ -111,6 +116,7 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 - [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
 - [MSSP Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
 - [MSSP EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
+- [MSSP Python Adapter v0.3](spec/MSSP-PYTHON-ADAPTER-v0.3.md)
 
 JSON diagnostic consumers should read `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
@@ -292,14 +298,14 @@ Displaying a candidate does not approve it. Displaying a relation does not prove
 
 Traditional Chinese guide: [Visualization](docs/visualization.zh-TW.md).
 
-## Adapter interoperability and EML
+## Adapter interoperability: EML and Python
 
 ```text
-External parser / editor / compiler
-              ↓ versioned semantic export
-         MSSP Adapter
-              ↓ deterministic translation
-      MSSP Intermediate Model
+External parser / editor / compiler / packaging tool
+                        ↓ versioned semantic export
+                   MSSP Adapter Registry
+                        ↓ deterministic translation
+                 MSSP Intermediate Model
 ```
 
 Every conforming adapter publishes a machine-readable descriptor and preserves:
@@ -315,7 +321,14 @@ Every conforming adapter publishes a machine-readable descriptor and preserves:
 }
 ```
 
-The first reference adapter consumes `eml-mssp-export` v0.3 JSON:
+The registry currently exposes:
+
+```text
+eml-mssp-export       aliases: eml
+python-mssp-export    aliases: python, py
+```
+
+The EML adapter consumes `eml-mssp-export` v0.3 JSON:
 
 ```bash
 node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
@@ -325,9 +338,25 @@ node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
 
 It does not parse raw `.eml`, execute EML, resolve imports, or modify the project. A complete explicit EML `declaration` maps to a module representation. A symbol without that declaration remains an `unclassified` candidate even when its EML `symbolKind` is `module`.
 
-Adapter output represents source declarations; it does not prove SCL approval, compatibility, registration, or deployment readiness.
+The Python adapter consumes `python-mssp-export` v0.3 JSON:
 
-Traditional Chinese guide: [Adapters and EML](docs/adapters.zh-TW.md).
+```bash
+node dist/cli.js adapt python examples/python-adapter/semantic-export.json \
+  --revision HEAD \
+  --out python-intermediate-model.json
+```
+
+It preserves distribution metadata, Python requirements, build-backend identity, qualified names, import paths, and entry points as source metadata. It does not import or execute Python, inspect a virtual environment, invoke package managers or build backends, resolve imports, or modify the project.
+
+A Python package, plugin, command, service, import path, or entry point is not architecture authority. Only a complete explicit `declaration` maps to an Intermediate Module; otherwise the component remains an `unclassified` candidate.
+
+Normative `requires`, `affects`, and `affected-by` relations are produced only from complete declarations, never from imports, package dependencies, entry points, names, or source proximity.
+
+The shared Declarative Adapter Builder normalizes explicit declarations, candidates, relations, source provenance, and stable ordering. Ecosystem adapters retain separate input schemas and metadata mappings.
+
+Adapter output represents source declarations; it does not prove SCL approval, compatibility, registration, runtime loading, or deployment readiness.
+
+Traditional Chinese guide: [Adapters, EML, and Python](docs/adapters.zh-TW.md).
 
 ## Module contract example
 
@@ -392,22 +421,23 @@ The `eml-mssp-export` reference adapter translates an explicit EML semantic expo
 ## Repository map
 
 ```text
-schemas/                 Normative schemas
-src/                     TypeScript core and CLI
-examples/hello-mssp/     Complete MSSP reference adoption
-examples/eml-adapter/    EML semantic-export reference fixture
-spec/                    Normative and interoperability specifications
-docs/                    Adoption, protocol, roadmap, and research guides
-.github/                  CI and architecture-review workflow
+schemas/                    Normative schemas
+src/                        TypeScript core and CLI
+examples/hello-mssp/        Complete MSSP reference adoption
+examples/eml-adapter/       EML semantic-export reference fixture
+examples/python-adapter/    Python semantic-export reference fixture
+spec/                       Normative and interoperability specifications
+docs/                       Adoption, protocol, roadmap, and research guides
+.github/                     CI and architecture-review workflow
 ```
 
 ## Status
 
 `v0.1.0` is the architecture-contract MVP. The principal v0.2 repository-intelligence vertical slices are implemented: diagnostics, Intermediate Model, scanner, static dependency evidence, advisory classification, governed promotion, structural drift, and Git diff impact analysis.
 
-The v0.3 visualization foundation, Adapter Contract, and first EML reference adapter are implemented. The EML adapter includes machine-readable descriptor and input schemas, conformance evaluation, public APIs, CLI execution, a reference fixture, tests, specifications, and CI artifacts.
+The v0.3 visualization foundation, Adapter Contract, deterministic Adapter Registry, shared Declarative Adapter Builder, EML reference adapter, and Python reference adapter are implemented. Both adapters include machine-readable descriptor and input schemas, conformance evaluation, public APIs, CLI execution, reference fixtures, tests, specifications, and CI artifacts.
 
-Python, Rust, Godot, and Agent Skill adapters remain future work. Compiler-grade AST dependency extraction, complete language alias resolution, full Git-ignore equivalence, generated-source provenance, patch-hunk or symbol-level impact analysis, and automatic semantic-version selection remain outside the current reference implementation.
+Rust, Godot, and Agent Skill adapters remain future work. Compiler-grade AST dependency extraction, complete language alias resolution, full Git-ignore equivalence, generated-source provenance, patch-hunk or symbol-level impact analysis, and automatic semantic-version selection remain outside the current reference implementation.
 
 ## License
 
