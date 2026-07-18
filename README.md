@@ -31,6 +31,8 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - `mssp island`: enforce the TMS island-test rule.
 - `mssp graph`: generate a Mermaid or JSON architecture graph.
 - `mssp explain`: print a concise inventory for humans and agents.
+- MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
+- Stable public `MSSP_*_NNN` diagnostic codes with v0.1 identifiers preserved as `legacyCode`.
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
@@ -43,6 +45,7 @@ npm install
 npm run build
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
+node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -51,10 +54,13 @@ During repository development:
 
 ```bash
 npm run mssp -- lint examples/hello-mssp
+npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
+
+The JSON commands emit the language-neutral [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md). Consumers should use `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
 ## Adopt MSSP in an existing repository
 
@@ -132,17 +138,18 @@ The package name is reserved for publication; before npm publication, run the re
 ## Repository map
 
 ```text
-schemas/                 Normative machine-readable schemas
+schemas/                 Normative machine-readable schemas, including diagnostics
 src/                     TypeScript core and CLI
 examples/hello-mssp/     Complete reference adoption
-spec/                    Method and conformance specification
-docs/                    Adoption, EML integration, and roadmap
+spec/                    Method and conformance specifications
+
+docs/                    Adoption, protocol guides, EML integration, whitepaper, roadmap
 .github/                  CI and architecture-review workflow
 ```
 
 ## Status
 
-`v0.1.0` is an MVP and a public starting point. It establishes testable boundaries, not a claim that every MSSP research module is complete.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is now in progress; its diagnostic protocol foundation is implemented without claiming that scanner and classification work are complete.
 
 ## License
 
