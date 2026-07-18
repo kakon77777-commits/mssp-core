@@ -32,12 +32,14 @@ jobs:
       - run: node dist/cli.js island examples/hello-mssp --json > island-diagnostics.json
       - run: node dist/cli.js model examples/hello-mssp --revision "${{ github.sha }}" --out intermediate-model.json
       - run: node dist/cli.js scan . --revision "${{ github.sha }}" --max-files 10000 --out repository-scan.json
+      - run: node dist/cli.js classify . --revision "${{ github.sha }}" --max-files 10000 --out classification-suggestions.json
       - run: node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
       - uses: actions/upload-artifact@v4
         with:
           name: mssp-validation-artifacts
           path: |
             architecture.mmd
+            classification-suggestions.json
             diagnostics.json
             island-diagnostics.json
             intermediate-model.json
