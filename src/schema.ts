@@ -53,6 +53,9 @@ export const validateArchitectureDriftSchema: ValidateFunction = ajv.compile(
 export const validateGitDiffImpactSchema: ValidateFunction = ajv.compile(
   readSchema("git-diff-impact.schema.json"),
 );
+export const validateVisualizationSchema: ValidateFunction = ajv.compile(
+  readSchema("visualization.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
