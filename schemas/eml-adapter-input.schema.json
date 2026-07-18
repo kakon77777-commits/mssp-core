@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EML MSSP Semantic Export v0.3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "project", "symbols"],
+  "properties": {
+    "schemaVersion": { "const": "0.3" },
+    "kind": { "const": "eml-mssp-export" },
+    "project": { "$ref": "#/$defs/project" },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "policies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/policy" }
+    },
+    "symbols": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/symbol" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "stringArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "layerId": {
+      "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"]
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "sourceUri"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "type": "string" },
+        "sourceUri": { "$ref": "#/$defs/nonEmptyString" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sourceUri"],
+      "properties": {
+        "id": { "$ref": "#/$defs/layerId" },
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "sourceUri": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "value", "sourceUri"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "value": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "$ref": "#/$defs/nonEmptyString" }
+          ]
+        },
+        "sourceUri": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modules", "tools", "data"],
+      "properties": {
+        "modules": { "$ref": "#/$defs/stringArray" },
+        "tools": { "$ref": "#/$defs/stringArray" },
+        "data": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["may", "mayNot"],
+      "properties": {
+        "may": { "$ref": "#/$defs/stringArray" },
+        "mayNot": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mssp", "modules"],
+      "properties": {
+        "mssp": { "$ref": "#/$defs/nonEmptyString" },
+        "modules": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      }
+    },
+    "changeImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["affects", "affectedBy", "notes"],
+      "properties": {
+        "affects": { "$ref": "#/$defs/stringArray" },
+        "affectedBy": { "$ref": "#/$defs/stringArray" },
+        "notes": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "layer", "purpose", "activation", "inputs", "outputs", "requirements", "permissions", "riskLevel", "failureModes", "validation", "tests", "compatibility", "changeImpact"],
+      "properties": {
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "layer": { "$ref": "#/$defs/layerId" },
+        "purpose": { "$ref": "#/$defs/nonEmptyString" },
+        "entry": { "$ref": "#/$defs/nonEmptyString" },
+        "activation": { "$ref": "#/$defs/stringArray" },
+        "inputs": { "$ref": "#/$defs/stringArray" },
+        "outputs": { "$ref": "#/$defs/stringArray" },
+        "requirements": { "$ref": "#/$defs/requirements" },
+        "permissions": { "$ref": "#/$defs/permissions" },
+        "riskLevel": { "enum": ["L0", "L1", "L2", "L3", "L4"] },
+        "failureModes": { "$ref": "#/$defs/stringArray" },
+        "validation": { "$ref": "#/$defs/stringArray" },
+        "tests": { "$ref": "#/$defs/stringArray" },
+        "compatibility": { "$ref": "#/$defs/compatibility" },
+        "changeImpact": { "$ref": "#/$defs/changeImpact" },
+        "maintainer": { "$ref": "#/$defs/nonEmptyString" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "boundaryKind": { "enum": ["repository", "package", "source-root", "directory"] },
+        "boundaryConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "fileCount": { "type": "integer", "minimum": 0 },
+        "sourceFileCount": { "type": "integer", "minimum": 0 },
+        "languages": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "symbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "symbolKind", "sourceUri"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "symbolKind": {
+          "enum": ["module", "capability", "policy", "router", "runtime", "diagnostic", "other"]
+        },
+        "sourceUri": { "$ref": "#/$defs/nonEmptyString" },
+        "purpose": { "type": "string" },
+        "declaration": { "$ref": "#/$defs/declaration" },
+        "candidate": { "$ref": "#/$defs/candidate" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

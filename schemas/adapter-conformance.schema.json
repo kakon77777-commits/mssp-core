@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MSSP Adapter Conformance Report v0.3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "adapter", "ok", "issues"],
+  "properties": {
+    "schemaVersion": { "const": "0.3" },
+    "kind": { "const": "mssp-adapter-conformance" },
+    "adapter": { "type": "string", "minLength": 1 },
+    "ok": { "type": "boolean" },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

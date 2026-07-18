@@ -1,0 +1,26 @@
+schemaVersion: "0.1"
+id: diagnostics.basic
+name: Basic Diagnostics
+version: "0.1.0"
+layer: DMS
+purpose: "Translate execution state into human-readable diagnostics."
+entry: index.js
+inputs: [event]
+outputs: [diagnostic]
+requires:
+  modules: [core.echo]
+  tools: []
+  data: []
+permissions:
+  may: [read-runtime-events]
+  mayNot: [mutate-business-state]
+riskLevel: L0
+failureModes: [malformed-event]
+validation: ["diagnostic includes status and source"]
+tests: ["formats a successful event"]
+compatibility:
+  mssp: ">=0.1 <0.2"
+changeImpact:
+  affects: []
+  affectedBy: [core.echo]
+maintainer: EVEMISSLAB

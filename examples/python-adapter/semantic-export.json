@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "0.3",
+  "kind": "python-mssp-export",
+  "project": {
+    "id": "example.python-system",
+    "name": "Example Python System",
+    "version": "1.4.0",
+    "description": "Reference Python semantic export for the MSSP adapter.",
+    "sourceUri": "pyproject.toml",
+    "distributionName": "mssp-python-example",
+    "requiresPython": ">=3.11",
+    "buildBackend": "hatchling.build",
+    "metadata": {
+      "exporter": "python-toolchain-fixture"
+    }
+  },
+  "layers": [
+    {
+      "id": "SMS",
+      "path": "src/example/core",
+      "sourceUri": "pyproject.toml"
+    },
+    {
+      "id": "TMS",
+      "path": "src/example/plugins",
+      "sourceUri": "pyproject.toml"
+    }
+  ],
+  "policies": [
+    {
+      "id": "python.dynamic-imports",
+      "value": "explicit-contract-only",
+      "sourceUri": "pyproject.toml"
+    }
+  ],
+  "components": [
+    {
+      "id": "core.document",
+      "name": "Document Core",
+      "pythonKind": "package",
+      "qualifiedName": "example.core.document",
+      "sourceUri": "src/example/core/document.py",
+      "importPath": "example.core.document",
+      "purpose": "Provide the stable document capability.",
+      "declaration": {
+        "version": "1.2.0",
+        "layer": "SMS",
+        "purpose": "Provide the stable document capability.",
+        "entry": "example.core.document:create_document",
+        "activation": [],
+        "inputs": ["document-request"],
+        "outputs": ["document"],
+        "requirements": {
+          "modules": [],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["allocate-document"],
+          "mayNot": ["network"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["invalid-document-request"],
+        "validation": ["document has a stable identifier"],
+        "tests": ["creates a minimal document"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {}
+        },
+        "changeImpact": {
+          "affects": ["plugin.markdown"],
+          "affectedBy": [],
+          "notes": ["Public document shape changes require plugin review."]
+        },
+        "maintainer": "core-team"
+      }
+    },
+    {
+      "id": "plugin.markdown",
+      "name": "Markdown Plugin",
+      "pythonKind": "plugin",
+      "qualifiedName": "example.plugins.markdown",
+      "sourceUri": "src/example/plugins/markdown.py",
+      "importPath": "example.plugins.markdown",
+      "entryPoints": [
+        "mssp.plugins:markdown=example.plugins.markdown:plugin"
+      ],
+      "purpose": "Render documents as Markdown.",
+      "declaration": {
+        "version": "0.8.0",
+        "layer": "TMS",
+        "purpose": "Render documents as Markdown.",
+        "entry": "example.plugins.markdown:plugin",
+        "activation": ["request.output == markdown"],
+        "inputs": ["document"],
+        "outputs": ["markdown-text"],
+        "requirements": {
+          "modules": ["core.document"],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["read-document"],
+          "mayNot": ["network", "write-source"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["unsupported-document-node"],
+        "validation": ["output is UTF-8 Markdown"],
+        "tests": ["renders a minimal document", "fails safely on unsupported nodes"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {
+            "core.document": ">=1 <2"
+          }
+        },
+        "changeImpact": {
+          "affects": [],
+          "affectedBy": ["core.document"],
+          "notes": []
+        },
+        "maintainer": "plugin-team"
+      }
+    },
+    {
+      "id": "experimental.preview",
+      "name": "Experimental Preview",
+      "pythonKind": "service",
+      "qualifiedName": "example.experimental.preview",
+      "sourceUri": "src/example/experimental/preview.py",
+      "importPath": "example.experimental.preview",
+      "entryPoints": [
+        "mssp.preview:experimental=example.experimental.preview:service"
+      ],
+      "purpose": "Prototype an optional preview service without granting architecture authority.",
+      "candidate": {
+        "path": "src/example/experimental",
+        "boundaryKind": "source-root",
+        "boundaryConfidence": 0.64,
+        "fileCount": 2,
+        "sourceFileCount": 2,
+        "languages": ["python"]
+      }
+    }
+  ]
+}

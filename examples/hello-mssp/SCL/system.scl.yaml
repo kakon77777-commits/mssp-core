@@ -1,0 +1,12 @@
+schemaVersion: "0.1"
+id: hello-controls
+changes:
+  architecture:
+    allowedBy: [maintainer]
+    requiresReview: true
+  runtimeConfiguration:
+    allowedBy: [maintainer, operator]
+    requiresReview: false
+forbidden:
+  - "SMS depending on TMS"
+  - "Executable source inside FMS"

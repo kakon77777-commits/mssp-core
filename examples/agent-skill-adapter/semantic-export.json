@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "0.3",
+  "kind": "agent-skill-mssp-export",
+  "project": {
+    "id": "agent-skill-example",
+    "name": "Agent Skill Example",
+    "version": "1.0.0",
+    "description": "Portable agent skills represented without executing or authorizing them.",
+    "sourceUri": "agent-skills.json",
+    "framework": "portable-agent-skills",
+    "frameworkVersion": "1.0",
+    "manifestFormat": "json",
+    "manifestVersion": "1.0",
+    "protocolVersion": "0.3",
+    "executionEnvironments": ["sandbox", "local"],
+    "modelFamilies": ["language-model"],
+    "transports": ["stdio"]
+  },
+  "layers": [
+    {
+      "id": "SMS",
+      "path": "skills/core",
+      "sourceUri": "agent-skills.json"
+    },
+    {
+      "id": "TMS",
+      "path": "skills/optional",
+      "sourceUri": "agent-skills.json"
+    }
+  ],
+  "policies": [
+    {
+      "id": "agent-skill.network-default",
+      "value": "deny-unless-declared",
+      "sourceUri": "policies/agent-skill-policy.json"
+    }
+  ],
+  "components": [
+    {
+      "id": "core.planner",
+      "name": "Core Planner",
+      "skillKind": "agent",
+      "skillIdentity": "agent:example.core-planner@1",
+      "sourceUri": "skills/core/planner/skill.json",
+      "namespace": "example.core",
+      "manifestPath": "skills/core/planner/skill.json",
+      "entrypoint": "skills/core/planner/index.ts",
+      "inputSchemaUri": "skills/core/planner/input.schema.json",
+      "outputSchemaUri": "skills/core/planner/output.schema.json",
+      "toolNames": ["plan.validate", "plan.create"],
+      "capabilities": ["validation", "planning"],
+      "triggers": ["intent:plan"],
+      "requiredPermissions": ["read-project"],
+      "deniedPermissions": ["write-source", "network"],
+      "readsResources": ["project.manifest"],
+      "writesResources": ["plan.snapshot"],
+      "modelConstraints": ["structured-output"],
+      "declaration": {
+        "version": "1.0.0",
+        "layer": "SMS",
+        "purpose": "Create and validate deterministic execution plans without executing them.",
+        "entry": "skills/core/planner/index.ts",
+        "activation": ["request.intent == plan"],
+        "inputs": ["planning-request"],
+        "outputs": ["validated-plan"],
+        "requirements": {
+          "modules": [],
+          "tools": [],
+          "data": ["project-manifest"]
+        },
+        "permissions": {
+          "may": ["read-project", "emit-plan"],
+          "mayNot": ["execute-plan", "network", "write-source"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["invalid-request", "unresolved-plan-step"],
+        "validation": ["plan conforms to output schema", "source project remains unchanged"],
+        "tests": ["creates a stable plan", "rejects an incomplete request"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {}
+        },
+        "changeImpact": {
+          "affects": ["skill.research"],
+          "affectedBy": [],
+          "notes": ["Planner contract changes require optional skill review."]
+        },
+        "maintainer": "example-agent-team"
+      }
+    },
+    {
+      "id": "skill.research",
+      "name": "Research Skill",
+      "skillKind": "skill",
+      "skillIdentity": "skill:example.research@1",
+      "sourceUri": "skills/optional/research/skill.json",
+      "namespace": "example.optional",
+      "manifestPath": "skills/optional/research/skill.json",
+      "promptPath": "skills/optional/research/prompt.md",
+      "entrypoint": "skills/optional/research/index.ts",
+      "inputSchemaUri": "skills/optional/research/input.schema.json",
+      "outputSchemaUri": "skills/optional/research/output.schema.json",
+      "toolNames": ["source.fetch", "search.query"],
+      "capabilities": ["citation", "research"],
+      "triggers": ["intent:research"],
+      "requiredPermissions": ["network", "read-project"],
+      "deniedPermissions": ["write-source"],
+      "delegatesTo": ["core.planner"],
+      "readsResources": ["project.manifest", "remote.sources"],
+      "writesResources": ["research.report"],
+      "modelConstraints": ["citation-required", "structured-output"],
+      "declaration": {
+        "version": "1.0.0",
+        "layer": "TMS",
+        "purpose": "Produce evidence-backed research reports when explicitly activated.",
+        "entry": "skills/optional/research/index.ts",
+        "activation": ["request.intent == research", "policy.network == allowed"],
+        "inputs": ["research-question"],
+        "outputs": ["research-report"],
+        "requirements": {
+          "modules": ["core.planner"],
+          "tools": ["search", "fetch"],
+          "data": []
+        },
+        "permissions": {
+          "may": ["network", "read-project", "emit-report"],
+          "mayNot": ["write-source", "execute-unreviewed-code"]
+        },
+        "riskLevel": "L2",
+        "failureModes": ["insufficient-evidence", "network-unavailable", "source-conflict"],
+        "validation": ["claims contain source evidence", "report conforms to output schema"],
+        "tests": ["produces a cited report", "fails closed without network approval"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {
+            "core.planner": ">=1 <2"
+          }
+        },
+        "changeImpact": {
+          "affects": [],
+          "affectedBy": ["core.planner"],
+          "notes": ["Planner schema changes may alter research planning."]
+        },
+        "maintainer": "example-agent-team"
+      }
+    },
+    {
+      "id": "experimental.session-memory",
+      "name": "Experimental Session Memory Policy",
+      "skillKind": "memory-policy",
+      "skillIdentity": "memory-policy:example.session@experimental",
+      "sourceUri": "skills/experimental/session-memory/policy.json",
+      "namespace": "example.experimental",
+      "manifestPath": "skills/experimental/session-memory/policy.json",
+      "capabilities": ["session-memory"],
+      "triggers": ["session:start", "session:end"],
+      "requiredPermissions": ["read-session-memory", "write-session-memory"],
+      "deniedPermissions": ["cross-user-memory", "network"],
+      "readsResources": ["session.memory"],
+      "writesResources": ["session.memory"],
+      "modelConstraints": ["user-scoped"],
+      "purpose": "Explore a bounded memory policy without declaring architecture authority.",
+      "candidate": {
+        "path": "skills/experimental/session-memory",
+        "boundaryKind": "source-root",
+        "boundaryConfidence": 0.7,
+        "fileCount": 2,
+        "sourceFileCount": 1,
+        "languages": ["json", "markdown"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/mssp/git-diff-impact.schema.json",
+  "title": "MSSP Git Diff Impact Report v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "generatedBy", "sourceModel", "comparison", "analysis", "changedFiles", "impactedModules", "requiredReviews", "summary", "findings"],
+  "properties": {
+    "schemaVersion": { "const": "0.2" },
+    "kind": { "const": "mssp-git-diff-impact-report" },
+    "generatedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "adapter"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "adapter": { "const": "git-diff-impact-analyzer" }
+      }
+    },
+    "sourceModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projectId", "projectName", "projectVersion"],
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "projectName": { "type": "string", "minLength": 1 },
+        "projectVersion": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "head", "comparisonMode", "projectPath", "totalChangedFiles", "outsideProjectFiles"],
+      "properties": {
+        "base": { "type": "string", "minLength": 1 },
+        "head": { "type": "string", "minLength": 1 },
+        "comparisonMode": { "const": "direct" },
+        "projectPath": { "type": "string", "minLength": 1 },
+        "totalChangedFiles": { "type": "integer", "minimum": 0 },
+        "outsideProjectFiles": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "semanticCompatibility", "autoVersionBump", "autoMutation"],
+      "properties": {
+        "mode": { "const": "static-conservative" },
+        "semanticCompatibility": { "const": false },
+        "autoVersionBump": { "const": false },
+        "autoMutation": { "const": false }
+      }
+    },
+    "changedFiles": { "type": "array", "items": { "$ref": "#/$defs/change" } },
+    "impactedModules": { "type": "array", "items": { "$ref": "#/$defs/moduleImpact" } },
+    "requiredReviews": { "type": "array", "items": { "$ref": "#/$defs/reviewRequirement" } },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "ok", "changedFiles", "directModules", "transitiveModules", "reviewRequirements", "indeterminate", "totalFindings"],
+      "properties": {
+        "status": { "enum": ["no-impact", "impact-detected", "indeterminate"] },
+        "ok": { "type": "boolean" },
+        "changedFiles": { "type": "integer", "minimum": 0 },
+        "directModules": { "type": "integer", "minimum": 0 },
+        "transitiveModules": { "type": "integer", "minimum": 0 },
+        "reviewRequirements": { "type": "integer", "minimum": 0 },
+        "indeterminate": { "type": "integer", "minimum": 0 },
+        "totalFindings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+  },
+  "$defs": {
+    "layer": { "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"] },
+    "reviewKind": { "enum": ["fms", "scl", "module-contract", "version", "compatibility", "island", "tests"] },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "path", "repositoryPath", "transition"],
+      "properties": {
+        "status": { "enum": ["added", "modified", "deleted", "renamed", "copied", "type-changed", "unmerged", "unknown"] },
+        "path": { "type": "string", "minLength": 1 },
+        "oldPath": { "type": "string", "minLength": 1 },
+        "repositoryPath": { "type": "string", "minLength": 1 },
+        "oldRepositoryPath": { "type": "string", "minLength": 1 },
+        "transition": { "enum": ["within-project", "into-project", "out-of-project"] }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "message"],
+      "properties": {
+        "kind": { "enum": ["git", "manifest", "mssp-vt", "fms", "policy"] },
+        "message": { "type": "string", "minLength": 1 },
+        "uri": { "type": "string", "minLength": 1 },
+        "moduleId": { "type": "string", "minLength": 1 },
+        "data": { "type": "object" }
+      }
+    },
+    "moduleImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moduleId", "layer", "direct", "distance", "changedFiles", "impactKinds", "evidence", "requiredReviews"],
+      "properties": {
+        "moduleId": { "type": "string", "minLength": 1 },
+        "layer": { "$ref": "#/$defs/layer" },
+        "direct": { "type": "boolean" },
+        "distance": { "type": "integer", "minimum": 0 },
+        "changedFiles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "impactKinds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "requiredReviews": { "type": "array", "items": { "$ref": "#/$defs/reviewKind" }, "uniqueItems": true }
+      }
+    },
+    "reviewRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "modules", "reasons"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/reviewKind" },
+        "modules": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "reasons": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "status", "category", "message", "evidence", "suggestedActions"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^MSSP_IMPACT_[0-9]{3}$" },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "status": { "enum": ["review-required", "indeterminate"] },
+        "category": { "enum": ["project-contract", "fms-review", "scl-review", "source-ownership", "mssp-vt", "path-transition", "generated-source"] },
+        "message": { "type": "string", "minLength": 1 },
+        "moduleId": { "type": "string", "minLength": 1 },
+        "layer": { "$ref": "#/$defs/layer" },
+        "path": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "suggestedActions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+      }
+    }
+  }
+}

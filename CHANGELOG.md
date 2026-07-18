@@ -1,0 +1,115 @@
+# Changelog
+
+## Unreleased — v0.2 intelligence, v0.3 visualization/adapters, and v0.4 router governance groundwork
+
+- Added MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
+- Added stable public `MSSP_*_NNN` diagnostic codes while preserving v0.1 identifiers in `legacyCode`.
+- Added machine-readable diagnostic evidence, related-module, source-location, and suggested-action fields.
+- Added `schemas/diagnostic.schema.json`, a normative protocol specification, Traditional Chinese guide, and conformance tests.
+- Human-readable CLI output now displays stable public diagnostic codes.
+- Added MSSP Intermediate Model v0.2 as the deterministic, language-neutral exchange representation for manifests, scanners, adapters, IDEs, and agents.
+- Added `mssp model`, portable source references, normalized modules, explicit dependency and MSSP-VT relations, evidence records, JSON Schema, specification, and conformance tests.
+- Added explicit `candidates` and scanner `discovery` data so repository discovery does not masquerade as approved MSSP modules.
+- Added the deterministic Repository Scanner through `mssp scan`.
+- Added bounded file inventory, source-language statistics, common ecosystem marker detection, structural candidate discovery, and evidence-backed boundary confidence.
+- Added root and nested `.gitignore` static evaluation with recorded ignore sources and counts.
+- Added npm, pnpm, and Cargo workspace discovery and workspace-backed boundary evidence.
+- Added static source-reference extraction for JavaScript/TypeScript, Python, Go, Rust, and GDScript.
+- Added `internal`, `cross-boundary`, `workspace`, `external`, and `unresolved` dependency scopes under `discovery.dependencies`.
+- Added conservative generated-source recognition; generated files remain in inventory but are excluded from static import evidence.
+- Scanner dependencies remain separate from normative `relations`; candidates remain `unclassified` and contain no MSSP layer.
+- Added Repository Scanner and Intermediate Model specifications, Traditional Chinese guides, conformance tests, and CI artifact output.
+- Added deterministic evidence-backed layer classification suggestions through `mssp classify`.
+- Added advisory hypotheses for FMS, SCL, SMS, TMS, DMS, Router, Runtime, and `UNDETERMINED`.
+- Added normalized support scores, confidence bands, alternative layers, supporting evidence, counterevidence, and layer-specific unresolved questions.
+- Added aggregate-boundary exclusion and mandatory low confidence for truncated scans.
+- Added `schemas/classification-suggestions.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Classification reports preserve `autoPromotion: false` and `review-required`; they do not modify candidates, modules, layers, or runtime relations.
+- Added the governed Candidate Review and Promotion Protocol v0.2.
+- Added `mssp review-candidate` with explicit approve, reject, and defer decisions, named reviewer identity, rationale, conditions, source snapshots, and blocked contract drafts.
+- Added `mssp promote-candidate` with blocker recomputation, independent approver separation, module Schema validation, provenance metadata, and overwrite refusal.
+- Promotion does not modify `mssp.yaml`, register a module automatically, create runtime relations, execute repository code, or trust a stored readiness flag.
+- Added `schemas/promotion-review.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Architecture Drift Report v0.2 through `mssp drift`.
+- Added canonical FMS document checks and conservative Markdown `ID`/`Layer` module-index parsing.
+- Added missing, stale, duplicate, and layer-mismatched FMS index findings.
+- Added bounded source ownership checks for unowned and overlapping executable module boundaries.
+- Added executable-source findings for declarative FMS and SCL layers.
+- Added explicit `drift` and `indeterminate` states, stable `MSSP_DRIFT_001` through `MSSP_DRIFT_010` codes, and fixed `semanticEquivalence: false` and `autoMutation: false` invariants.
+- Added `schemas/architecture-drift.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Git Diff Impact Report v0.2 through `mssp impact`.
+- Added direct Git name-status collection with rename detection, project-relative path mapping, and project-boundary transitions.
+- Added direct module ownership classification for manifest, entry, and source changes.
+- Added transitive MSSP-VT propagation through `affects`, `affectedBy`, required-module, and compatibility declarations.
+- Added FMS, SCL, module-contract, version, compatibility, test, and TMS island review requirements.
+- Added stable `MSSP_IMPACT_*` findings for unowned or overlapping paths, unknown relation targets, deleted declarations, and generated-source provenance gaps.
+- Impact reports preserve `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`; they never approve a change or select a semantic-version increment.
+- Added `schemas/git-diff-impact.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Visualization Model v0.3 and the `mssp viz` command.
+- Added deterministic layered module, candidate, and unresolved-reference nodes with `requires`, `affects`, and `affected-by` edges.
+- Added optional source navigation through `--source-base` while preserving repository-relative source identity.
+- Added a self-contained interactive HTML renderer with search, layer filters, node inspection, relation drawing, and no external runtime dependency.
+- Added deterministic `layer`, `status`, `risk`, and `connectivity` projections; every projection contains every node exactly once without changing canonical node authority.
+- Added `--view` default projection selection and explicit positive-integer scale controls for large-graph threshold, initial node materialization, batch size, and maximum rendered edges.
+- Added the Visualization Scale Profile with node/edge counts, `bounded-batch` node rendering, and `visible-endpoints-only` relation rendering.
+- Large-graph rendering keeps the complete model embedded while bounding DOM nodes and SVG paths; hidden data is not treated as absent architecture.
+- Visualization preserves fixed `readOnly: true` and `autoMutation: false` invariants and never classifies or promotes candidates.
+- Added `schemas/visualization.schema.json`, expanded normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
+- Added MSSP Router Contract Evaluator v0.4 and the `mssp route` command.
+- Added versioned `mssp-router-request` and `mssp-router-evaluation-report` documents with independent JSON Schemas.
+- Added declared-TMS-only candidate evaluation across activation conditions, inputs, outputs, module dependencies, tools, data, permissions, risk ceilings, MSSP compatibility, and required-module compatibility.
+- Added the conservative `mssp-exact-condition-v0.4` scalar condition subset and `numeric-comparator-range-v0.4` version subset; unsupported syntax remains indeterminate rather than guessed.
+- Added explicit `selected`, `ambiguous`, `no-match`, and `indeterminate` outcomes with no silent ranking or tie-breaking.
+- Added stable `MSSP_ROUTE_001` through `MSSP_ROUTE_015` reason codes.
+- Router reports preserve `deterministic: true`, `readOnly: true`, `noExecution: true`, `noNetwork: true`, `autoActivation: false`, `autoMutation: false`, and `runtimeCompatibilityProof: false`.
+- Added Router normative specification, Traditional Chinese guide, public TypeScript APIs, reference request fixture, tests, and CI artifact output.
+- Added MSSP Adapter Contract v0.3 with machine-readable adapter descriptors and conformance reports.
+- Added mandatory `deterministic`, `readOnly`, `noExecution`, `noNetwork`, `autoPromotion: false`, and `autoMutation: false` adapter invariants.
+- Added portable adapter provenance checks, stable ordering checks, duplicate-identity checks, module/candidate overlap checks, and Intermediate Model validation.
+- Added `mssp adapters` for descriptor discovery and public `MsspAdapter`, `runAdapter`, and `evaluateAdapterConformance` TypeScript APIs.
+- Added a deterministic Adapter Registry and shared Declarative Adapter Builder for explicit declaration, candidate, relation, provenance, and sorting behavior.
+- Added the `eml-mssp-export` reference adapter and `mssp adapt eml` CLI command.
+- Added a versioned EML semantic-export input Schema, explicit declaration-to-module mapping, undeclared symbol-to-candidate mapping, and relation mapping only from complete declarations.
+- The EML adapter does not parse raw `.eml`, execute EML, resolve imports, access the network, mutate source projects, or register emitted modules.
+- Added the `python-mssp-export` reference adapter with `mssp adapt python` and `mssp adapt py` aliases.
+- Added Python distribution, interpreter requirement, build backend, qualified-name, import-path, and entry-point metadata preservation without treating those fields as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Python component-to-candidate mapping, duplicate component and qualified-name rejection, portable provenance, and relation mapping only from complete declarations.
+- The Python adapter does not import or execute Python, invoke an interpreter, inspect virtual environments, run package managers or build backends, resolve imports, access the network, mutate source projects, or register emitted modules.
+- Added the `rust-mssp-export` reference adapter with `mssp adapt rust` and `mssp adapt rs` aliases.
+- Added Cargo workspace, resolver, rust-version, edition, toolchain, package, crate, target, crate-type, feature, and target-triple metadata preservation without treating those fields as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Rust component-to-candidate mapping, duplicate component and Cargo-identity rejection, portable provenance, and relation mapping only from complete declarations.
+- The Rust adapter does not run Cargo, rustc, rustup, linkers, build scripts, procedural macros, crates, registries, or dependency resolution; it does not access the network, mutate source projects, or register emitted modules.
+- Added the `godot-mssp-export` reference adapter with `mssp adapt godot` and `mssp adapt gd` aliases.
+- Added Godot engine version, renderer, main scene, project features, scripting languages, scene/script/class/base/node/resource identities, autoloads, plugins, signals, and groups as source metadata without treating them as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Godot component-to-candidate mapping, duplicate component and Godot-identity rejection, portable provenance, and relation mapping only from complete declarations.
+- The Godot adapter does not launch the editor or runtime, load scenes/resources/scripts, execute GDScript/C#/GDExtension/tool scripts/plugins, inspect `.godot` state, resolve runtime relations, access the network, mutate source projects, or register emitted modules.
+- Added the `agent-skill-mssp-export` reference adapter with `mssp adapt agent-skill` and `mssp adapt skill` aliases.
+- Added Agent Skill framework, manifest, protocol, environment, model-family, transport, identity, namespace, prompt, schema, tool, capability, trigger, permission, delegation, resource, and model-constraint metadata preservation without treating those fields as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Agent Skill component-to-candidate mapping, duplicate component and Agent Skill identity rejection, portable provenance, and relation mapping only from complete declarations.
+- Source-framework permissions remain metadata and do not become MSSP permission grants unless supplied independently in a complete explicit declaration.
+- The Agent Skill adapter does not invoke agents, models, prompts, skills, tools, workflows, evaluators, guardrails, handoffs, memory, MCP servers, transports, browsers, shells, package managers, credentials, network services, or source-URI targets; it does not mutate source projects or register emitted modules.
+- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, `schemas/godot-adapter-input.schema.json`, and `schemas/agent-skill-adapter-input.schema.json`, plus normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
+- Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
+- CI exports adapter descriptors, five ecosystem-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, Router evaluation report, multi-view visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
+- Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
+- Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
+- Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
+- Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
+- Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
+- Migration: visualization consumers must accept `projections` and `scale`, keep candidates unclassified, preserve unresolved references, and treat not-yet-materialized nodes and edges as present in the complete model.
+- Migration: Router consumers must distinguish static eligibility from activation, execution, SCL approval, permission grant, and runtime compatibility proof; ambiguous results must not be resolved through hidden ordering.
+- Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
+- Migration: Python metadata consumers must not treat package kind, import path, distribution metadata, or entry points as MSSP classification, activation approval, or runtime loading evidence.
+- Migration: Rust metadata consumers must not treat workspace membership, package/crate kind, Cargo target, feature, edition, or toolchain metadata as MSSP classification, activation approval, or runtime loading evidence.
+- Migration: Godot metadata consumers must not treat main-scene status, scene/script attachment, autoload registration, plugin state, signals, groups, resources, or engine metadata as MSSP classification, activation approval, or runtime loading evidence.
+- Migration: Agent Skill metadata consumers must not treat tools, prompts, triggers, source permissions, handoffs, delegation, resource access, memory policies, model constraints, transports, or capabilities as MSSP classification, permission grants, activation approval, or runtime relations.
+- Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
+
+## 0.1.0 — 2026-07-18
+
+- Established the independent MSSP Core boundary.
+- Added project and module schemas.
+- Added TypeScript CLI: init, lint, explain, graph, island.
+- Enforced FMS purity, SMS/TMS dependency direction, cycles, layer placement, entries, and MSSP-VT references.
+- Added GitHub CI, PR architecture review, reference project, bilingual documentation, and EML integration boundary.

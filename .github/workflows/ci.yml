@@ -1,0 +1,72 @@
+name: MSSP Core CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mssp-core-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: node dist/cli.js adapters --json --out adapter-descriptors.json
+      - run: node dist/cli.js adapt agent-skill examples/agent-skill-adapter/semantic-export.json --revision "${{ github.sha }}" --out agent-skill-intermediate-model.json
+      - run: node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision "${{ github.sha }}" --out eml-intermediate-model.json
+      - run: node dist/cli.js adapt godot examples/godot-adapter/semantic-export.json --revision "${{ github.sha }}" --out godot-intermediate-model.json
+      - run: node dist/cli.js adapt python examples/python-adapter/semantic-export.json --revision "${{ github.sha }}" --out python-intermediate-model.json
+      - run: node dist/cli.js adapt rust examples/rust-adapter/semantic-export.json --revision "${{ github.sha }}" --out rust-intermediate-model.json
+      - run: node dist/cli.js lint examples/hello-mssp
+      - run: node dist/cli.js lint examples/hello-mssp --json > diagnostics.json
+      - run: node dist/cli.js island examples/hello-mssp
+      - run: node dist/cli.js island examples/hello-mssp --json > island-diagnostics.json
+      - run: node dist/cli.js model examples/hello-mssp --revision "${{ github.sha }}" --out intermediate-model.json
+      - run: node dist/cli.js scan . --revision "${{ github.sha }}" --max-files 10000 --out repository-scan.json
+      - run: node dist/cli.js classify . --revision "${{ github.sha }}" --max-files 10000 --out classification-suggestions.json
+      - run: node dist/cli.js review-candidate . --candidate candidate.repository --decision defer --reviewer ci-architecture-reviewer --reviewer-kind agent --rationale "Aggregate repository boundaries require architecture review." --reviewed-at "2026-07-18T00:00:00.000Z" --revision "${{ github.sha }}" --max-files 10000 --out promotion-review.json
+      - run: node dist/cli.js drift examples/hello-mssp --revision "${{ github.sha }}" --max-files 10000 --out architecture-drift.json
+      - run: node dist/cli.js impact examples/hello-mssp --base "HEAD^1" --head "HEAD" --revision "${{ github.sha }}" --out git-diff-impact.json
+      - run: node dist/cli.js route examples/hello-mssp --request examples/hello-mssp/router-request.json --revision "${{ github.sha }}" --out router-evaluation.json
+      - run: node dist/cli.js viz examples/hello-mssp --format json --view connectivity --large-graph-threshold 2 --initial-node-limit 2 --batch-size 2 --max-rendered-edges 100 --revision "${{ github.sha }}" --source-base "https://github.com/${{ github.repository }}/blob/${{ github.sha }}" --out visualization.json
+      - run: node dist/cli.js viz examples/hello-mssp --format html --view risk --large-graph-threshold 2 --initial-node-limit 2 --batch-size 2 --max-rendered-edges 100 --revision "${{ github.sha }}" --source-base "https://github.com/${{ github.repository }}/blob/${{ github.sha }}" --out architecture.html
+      - run: node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mssp-validation-artifacts
+          path: |
+            adapter-descriptors.json
+            agent-skill-intermediate-model.json
+            architecture-drift.json
+            architecture.html
+            architecture.mmd
+            classification-suggestions.json
+            diagnostics.json
+            eml-intermediate-model.json
+            git-diff-impact.json
+            godot-intermediate-model.json
+            island-diagnostics.json
+            intermediate-model.json
+            promotion-review.json
+            python-intermediate-model.json
+            repository-scan.json
+            router-evaluation.json
+            rust-intermediate-model.json
+            visualization.json

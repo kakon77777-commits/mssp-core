@@ -1,0 +1,53 @@
+{
+  "name": "@evemisslab/mssp-core",
+  "version": "0.1.0",
+  "description": "MSSP Core MVP — a language-agnostic architecture manifest, validator, graph generator, and island-test CLI.",
+  "type": "module",
+  "bin": {
+    "mssp": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "schemas",
+    "templates",
+    "README.md",
+    "README.zh-TW.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "tsx src/cli.ts",
+    "mssp": "tsx src/cli.ts",
+    "check:example": "tsx src/cli.ts lint examples/hello-mssp && tsx src/cli.ts island examples/hello-mssp && tsx src/cli.ts graph examples/hello-mssp --format mermaid"
+  },
+  "keywords": [
+    "MSSP",
+    "architecture",
+    "FMS",
+    "SMS",
+    "TMS",
+    "modular",
+    "agent",
+    "software-architecture"
+  ],
+  "author": "Neo.K / EVEMISSLAB",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
