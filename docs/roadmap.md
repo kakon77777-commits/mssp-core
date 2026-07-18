@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization foundation complete; adapter work remains.
+**Status:** Visualization, Adapter Contract, and first EML reference adapter complete; additional ecosystem adapters remain.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -109,7 +109,21 @@
   - repository-relative `sourceUri` preservation;
   - optional `--source-base` links;
   - source navigation does not alter architecture authority.
-- [ ] EML adapter.
+- [x] Adapter Contract v0.3.
+  - machine-readable adapter descriptors and conformance reports;
+  - deterministic, read-only, offline, non-executing adapter invariants;
+  - portable adapter provenance on all emitted sources;
+  - explicit module/candidate authority separation;
+  - public TypeScript APIs and `mssp adapters` discovery command;
+  - JSON Schemas, normative specification, tests, and CI artifacts.
+- [x] EML adapter.
+  - versioned `eml-mssp-export` semantic-export input;
+  - `mssp adapt eml` CLI;
+  - complete explicit declarations mapped to modules;
+  - undeclared EML symbols preserved as unclassified candidates;
+  - normative relations emitted only from explicit declarations;
+  - no raw EML parsing, EML execution, network, source mutation, or project registration;
+  - reference fixture, specification, Traditional Chinese guide, tests, and CI artifact.
 - [ ] Python adapter.
 - [ ] Rust adapter.
 - [ ] Godot adapter.
