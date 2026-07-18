@@ -18,9 +18,10 @@ The implementation is validated from clean Draft PR merge-ref checkouts with com
 ```text
 npm ci --no-audit --no-fund                                      PASS
 npm run typecheck                                                PASS
-npm test                                                         PASS — 15 test files, 72 tests
+npm test                                                         PASS — 16 test files, 81 tests
 npm run build                                                    PASS
 mssp adapters --json --out adapter-descriptors.json              PASS
+mssp adapt agent-skill examples/agent-skill-adapter/...          PASS
 mssp adapt eml examples/eml-adapter/semantic-export.json ...     PASS
 mssp adapt godot examples/godot-adapter/semantic-export.json ... PASS
 mssp adapt python examples/python-adapter/semantic-export.json ... PASS
@@ -55,11 +56,12 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Visualization Models validate against `schemas/visualization.schema.json`.
 - Adapter descriptors validate against `schemas/adapter-descriptor.schema.json`.
 - Adapter conformance reports validate against `schemas/adapter-conformance.schema.json`.
+- Agent Skill semantic exports validate against `schemas/agent-skill-adapter-input.schema.json`.
 - EML semantic exports validate against `schemas/eml-adapter-input.schema.json`.
 - Godot semantic exports validate against `schemas/godot-adapter-input.schema.json`.
 - Python semantic exports validate against `schemas/python-adapter-input.schema.json`.
 - Rust semantic exports validate against `schemas/rust-adapter-input.schema.json`.
-- EML-, Godot-, Python-, and Rust-adapted outputs validate against `schemas/intermediate-model.schema.json`.
+- Agent Skill-, EML-, Godot-, Python-, and Rust-adapted outputs validate against `schemas/intermediate-model.schema.json`.
 - Manifest models emit declared `modules` and an empty `candidates` array.
 - Scanner models emit unclassified `candidates`, discovery evidence, and no invented MSSP layer assignments.
 - Scanner static dependencies remain in `discovery.dependencies`; normative `relations` remain empty.
@@ -69,7 +71,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Impact reports preserve `mode: static-conservative`, `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`.
 - Visualization Models preserve `readOnly: true` and `autoMutation: false`.
 - Adapter descriptors preserve `deterministic: true`, `readOnly: true`, `noExecution: true`, `noNetwork: true`, `autoPromotion: false`, and `autoMutation: false`.
-- Model, scanner, classifier, fixed-input review, drift, impact, visualization, EML adapter, Godot adapter, Python adapter, and Rust adapter output are deterministic for identical inputs and options.
+- Model, scanner, classifier, fixed-input review, drift, impact, visualization, Agent Skill adapter, EML adapter, Godot adapter, Python adapter, and Rust adapter output are deterministic for identical inputs and options.
 - Source and changed-file references are portable and project-relative where applicable.
 
 ## Verified scanner and classification behavior
@@ -138,27 +140,32 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Source links preserve repository-relative source identity.
 - Visualization cannot classify, promote, approve, register, execute, or mutate the architecture it displays.
 
-## Verified Adapter Contract, Registry, EML, Godot, Python, and Rust behavior
+## Verified Adapter Contract, Registry, Agent Skill, EML, Godot, Python, and Rust behavior
 
-- EML, Godot, Python, and Rust adapter descriptors are schema-valid and advertise fixed read-only, offline, and non-executing invariants.
-- The registry emits descriptors in stable adapter-ID order and resolves `eml`, `godot`, `gd`, `python`, `py`, `rust`, and `rs` aliases without ecosystem-specific CLI branches.
-- `mssp adapters --json` emits all four machine-readable descriptors through the public CLI.
+- Agent Skill, EML, Godot, Python, and Rust adapter descriptors are schema-valid and advertise fixed read-only, offline, and non-executing invariants.
+- The registry emits descriptors in stable adapter-ID order and resolves `agent-skill`, `skill`, `eml`, `godot`, `gd`, `python`, `py`, `rust`, and `rs` aliases without ecosystem-specific CLI branches.
+- `mssp adapters --json` emits all five machine-readable descriptors through the public CLI.
+- `mssp adapt agent-skill` consumes only a versioned `agent-skill-mssp-export` JSON document.
 - `mssp adapt eml` consumes only a versioned `eml-mssp-export` JSON document.
 - `mssp adapt godot` consumes only a versioned `godot-mssp-export` JSON document.
 - `mssp adapt python` consumes only a versioned `python-mssp-export` JSON document.
 - `mssp adapt rust` consumes only a versioned `rust-mssp-export` JSON document.
 - Complete explicit declarations map to Intermediate Modules with adapter provenance.
-- EML symbols, Godot components, Python components, and Rust components without complete declarations remain `unclassified` candidates even when source metadata describes them as modules, scenes, scripts, autoloads, plugins, packages, commands, services, crates, libraries, binaries, build scripts, or procedural macros.
+- Agent Skill, EML, Godot, Python, and Rust components without complete declarations remain `unclassified` candidates even when source metadata describes them as agents, skills, tools, prompts, workflows, memory policies, modules, scenes, scripts, autoloads, plugins, packages, commands, services, crates, libraries, binaries, build scripts, or procedural macros.
+- Agent Skill framework, manifest, protocol, environment, model-family, transport, tool, capability, trigger, permission, delegation, resource, prompt, schema, and model-constraint fields remain metadata and do not grant architecture authority.
+- Agent Skill source permissions do not become MSSP permission grants unless independently present in a complete declaration.
 - Godot engine, renderer, main-scene, scene/script/class/node/resource, autoload, plugin, signal, and group metadata do not grant architecture authority.
 - Python import paths and entry points remain metadata and do not grant architecture authority.
 - Rust workspace membership, Cargo package/crate identity, targets, features, editions, toolchains, crate types, and target triples remain metadata and do not grant architecture authority.
 - Incomplete declarations are rejected rather than completed heuristically.
+- Duplicate Agent Skill component IDs and Agent Skill identities are rejected.
 - Duplicate EML symbol identities are rejected.
 - Duplicate Godot component IDs and Godot identities are rejected.
 - Duplicate Python component IDs and qualified names are rejected.
 - Duplicate Rust component IDs and Cargo identities are rejected.
 - Duplicate layer and policy identities are rejected.
 - Normative `requires`, `affects`, and `affected-by` relations are emitted only from complete explicit declarations.
+- Agent Skill tools, tool calls, prompts, triggers, capabilities, permissions, handoffs, delegation, resource access, model constraints, transports, names, and source proximity do not become normative relations.
 - Godot scene inheritance, node ownership, script attachment, signals, groups, autoloads, plugin state, resources, preload/load calls, names, and source proximity do not become normative relations.
 - Python imports, distribution dependencies, entry points, decorators, names, and source proximity do not become normative relations.
 - Cargo dependency tables, features, `use` statements, crate imports, workspace membership, build scripts, procedural macros, target types, names, and source proximity do not become normative relations.
@@ -169,6 +176,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Adapter output uses stable lexical ordering and does not mutate its input object.
 - The shared Declarative Adapter Builder preserves common module, candidate, relation, provenance, and sorting rules while each ecosystem retains its own input Schema and metadata mapping.
 - Conformance evaluation detects invalid descriptor/output schemas, adapter identity mismatch, duplicate or overlapping identities, unstable ordering, and invalid source provenance.
+- The Agent Skill adapter does not invoke agents, models, prompts, skills, tools, workflows, evaluators, guardrails, handoffs, memory, MCP servers, transports, browsers, shells, package managers, credentials, source-URI targets, Git, or network access.
 - The EML adapter does not parse raw `.eml`, execute EML, resolve imports, read source-URI targets, invoke Git, invoke a package manager, or access the network.
 - The Godot adapter does not launch the editor/runtime/importer/exporter, load scenes/resources/scripts, execute GDScript/C#/GDExtension/tool scripts/plugins, inspect `.godot` state, resolve runtime relations, read source-URI targets, invoke Git, or access the network.
 - The Python adapter does not import or execute Python, invoke an interpreter, inspect virtual environments, run package managers or build backends, resolve imports, read source-URI targets, invoke Git, or access the network.
@@ -182,12 +190,12 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - SMS depending on TMS is rejected.
 - Scanner and adapter candidates contain no layer before governed review.
 - Static source references do not become runtime relations automatically.
-- Source-language metadata and adapter heuristics do not become module declarations.
+- Source-language, engine, skill, permission, tool, and model metadata do not become module declarations.
 - Classification review and final promotion approval are separate roles.
 - Drift findings cannot mutate architecture.
 - Impact findings cannot approve, version, or mutate changes.
 - Visualization cannot mutate or authorize architecture.
-- Adapter translation cannot execute source systems, register modules, or grant architecture authority.
+- Adapter translation cannot execute source systems, register modules, grant permissions, or grant architecture authority.
 
 ## Package portability
 
@@ -209,9 +217,9 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No historical or cross-version drift baseline.
 - No runtime DMS event transport.
 - No graph editor, architecture mutation UI, large-graph virtualization, or multi-view layout refinement.
+- No direct Agent Skill framework, model, tool, MCP, prompt, memory, permission, or live-runtime integration; the current adapter consumes a versioned semantic export.
 - No direct raw-EML parser integration or live EML toolchain bridge; the current adapter consumes a versioned semantic export.
 - No direct Godot editor/runtime/importer/resource-graph/live-project integration; the current adapter consumes a versioned semantic export.
 - No direct Python AST, packaging-tool, interpreter, or live-environment integration; the current adapter consumes a versioned semantic export.
 - No direct Rust compiler, Cargo graph, build-script, procedural-macro, registry, or live-toolchain integration; the current adapter consumes a versioned semantic export.
-- No Agent Skill adapter.
 - No AISMBI/MCL implementation.
