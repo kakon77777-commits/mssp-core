@@ -29,10 +29,12 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - `mssp init`: scaffold an adoption-ready MSSP project.
 - `mssp lint`: validate YAML schemas, layer placement, dependency direction, FMS purity, cycles, entries, and MSSP-VT references.
 - `mssp island`: enforce the TMS island-test rule.
-- `mssp graph`: generate a Mermaid or JSON architecture graph.
+- `mssp model`: export the deterministic, language-neutral MSSP Intermediate Model.
+- `mssp graph`: generate a Mermaid or JSON architecture graph from the Intermediate Model.
 - `mssp explain`: print a concise inventory for humans and agents.
 - MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Stable public `MSSP_*_NNN` diagnostic codes with v0.1 identifiers preserved as `legacyCode`.
+- Portable source references, explicit dependency and MSSP-VT relations, and evidence records.
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
@@ -46,6 +48,7 @@ npm run build
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project --json
+node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -55,12 +58,15 @@ During repository development:
 ```bash
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- lint examples/hello-mssp --json
+npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
 
-The JSON commands emit the language-neutral [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md). Consumers should use `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
+The JSON diagnostic commands emit the [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md). Consumers should use `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
+
+The `model` command emits the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, repository scanners, language adapters, IDEs, agents, graphs, and future impact analysis.
 
 ## Adopt MSSP in an existing repository
 
@@ -112,6 +118,20 @@ changeImpact:
 maintainer: example-team
 ```
 
+## Intermediate Model boundary
+
+Source-specific adapters produce one normalized model:
+
+```text
+MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
+                              ↓
+                  MSSP Intermediate Model
+                              ↓
+        Validator / Graph / IDE / Agent / Impact Analysis
+```
+
+The reference model is deterministic, does not expose host-specific absolute paths, and records source evidence. The graph generator already consumes this model rather than parsing manifests directly.
+
 ## Island-test rule
 
 A TMS passes the MVP island test when it can be understood and loaded with:
@@ -131,25 +151,24 @@ MSSP = architecture organization, capability placement, subset governance
 EML  = semantic expression, compression, executable language tooling
 ```
 
-The future `@eml/mssp-adapter` should translate EML AST and trace data into MSSP manifests and diagnostics. `@mssp/core` must remain independent from EML.
+The future `@eml/mssp-adapter` should translate EML AST and trace data into the MSSP Intermediate Model and Diagnostic Protocol. MSSP Core must remain independent from EML.
 
 The package name is reserved for publication; before npm publication, run the repository-local `node dist/cli.js` commands shown above.
 
 ## Repository map
 
 ```text
-schemas/                 Normative machine-readable schemas, including diagnostics
+schemas/                 Normative schemas for manifests, diagnostics, and the Intermediate Model
 src/                     TypeScript core and CLI
 examples/hello-mssp/     Complete reference adoption
-spec/                    Method and conformance specifications
-
+spec/                    Method and interoperability specifications
 docs/                    Adoption, protocol guides, EML integration, whitepaper, roadmap
 .github/                  CI and architecture-review workflow
 ```
 
 ## Status
 
-`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is now in progress; its diagnostic protocol foundation is implemented without claiming that scanner and classification work are complete.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress; the Diagnostic Protocol and language-neutral Intermediate Model foundations are implemented. Repository scanning, evidence-backed classification, FMS/code drift analysis, and Git diff impact inference remain open.
 
 ## License
 
