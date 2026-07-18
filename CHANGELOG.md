@@ -63,9 +63,13 @@
 - Added Python distribution, interpreter requirement, build backend, qualified-name, import-path, and entry-point metadata preservation without treating those fields as architecture authority.
 - Added explicit declaration-to-module mapping, undeclared Python component-to-candidate mapping, duplicate component and qualified-name rejection, portable provenance, and relation mapping only from complete declarations.
 - The Python adapter does not import or execute Python, invoke an interpreter, inspect virtual environments, run package managers or build backends, resolve imports, access the network, mutate source projects, or register emitted modules.
-- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, normative specifications, Traditional Chinese guide, reference fixtures, tests, and CI artifacts.
+- Added the `rust-mssp-export` reference adapter with `mssp adapt rust` and `mssp adapt rs` aliases.
+- Added Cargo workspace, resolver, rust-version, edition, toolchain, package, crate, target, crate-type, feature, and target-triple metadata preservation without treating those fields as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Rust component-to-candidate mapping, duplicate component and Cargo-identity rejection, portable provenance, and relation mapping only from complete declarations.
+- The Rust adapter does not run Cargo, rustc, rustup, linkers, build scripts, procedural macros, crates, registries, or dependency resolution; it does not access the network, mutate source projects, or register emitted modules.
+- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports adapter descriptors, EML- and Python-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- CI exports adapter descriptors, EML-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
@@ -75,6 +79,7 @@
 - Migration: visualization consumers must keep candidates unclassified and unresolved references visible.
 - Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
 - Migration: Python metadata consumers must not treat package kind, import path, distribution metadata, or entry points as MSSP classification, activation approval, or runtime loading evidence.
+- Migration: Rust metadata consumers must not treat workspace membership, package/crate kind, Cargo target, feature, edition, or toolchain metadata as MSSP classification, activation approval, or runtime loading evidence.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
