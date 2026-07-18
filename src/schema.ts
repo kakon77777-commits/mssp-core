@@ -47,6 +47,9 @@ export const validateClassificationSuggestionsSchema: ValidateFunction = ajv.com
 export const validatePromotionReviewSchema: ValidateFunction = ajv.compile(
   readSchema("promotion-review.schema.json"),
 );
+export const validateArchitectureDriftSchema: ValidateFunction = ajv.compile(
+  readSchema("architecture-drift.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
