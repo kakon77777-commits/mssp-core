@@ -16,7 +16,7 @@
 - Added npm, pnpm, and Cargo workspace discovery and workspace-backed boundary evidence.
 - Added static source-reference extraction for JavaScript/TypeScript, Python, Go, Rust, and GDScript.
 - Added `internal`, `cross-boundary`, `workspace`, `external`, and `unresolved` dependency scopes under `discovery.dependencies`.
-- Added conservative generated-source recognition; generated files remain in inventory but are excluded from static dependency evidence.
+- Added conservative generated-source recognition; generated files remain in inventory but are excluded from static import evidence.
 - Scanner dependencies remain separate from normative `relations`; candidates remain `unclassified` and contain no MSSP layer.
 - Added Repository Scanner and Intermediate Model specifications, Traditional Chinese guides, conformance tests, and CI artifact output.
 - Added deterministic evidence-backed layer classification suggestions through `mssp classify`.
@@ -67,9 +67,13 @@
 - Added Cargo workspace, resolver, rust-version, edition, toolchain, package, crate, target, crate-type, feature, and target-triple metadata preservation without treating those fields as architecture authority.
 - Added explicit declaration-to-module mapping, undeclared Rust component-to-candidate mapping, duplicate component and Cargo-identity rejection, portable provenance, and relation mapping only from complete declarations.
 - The Rust adapter does not run Cargo, rustc, rustup, linkers, build scripts, procedural macros, crates, registries, or dependency resolution; it does not access the network, mutate source projects, or register emitted modules.
-- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
+- Added the `godot-mssp-export` reference adapter with `mssp adapt godot` and `mssp adapt gd` aliases.
+- Added Godot engine version, renderer, main scene, project features, scripting languages, scene/script/class/base/node/resource identities, autoloads, plugins, signals, and groups as source metadata without treating them as architecture authority.
+- Added explicit declaration-to-module mapping, undeclared Godot component-to-candidate mapping, duplicate component and Godot-identity rejection, portable provenance, and relation mapping only from complete declarations.
+- The Godot adapter does not launch the editor or runtime, load scenes/resources/scripts, execute GDScript/C#/GDExtension/tool scripts/plugins, inspect `.godot` state, resolve runtime relations, access the network, mutate source projects, or register emitted modules.
+- Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, and `schemas/godot-adapter-input.schema.json`, plus normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports adapter descriptors, EML-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- CI exports adapter descriptors, EML-, Godot-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
@@ -80,6 +84,7 @@
 - Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
 - Migration: Python metadata consumers must not treat package kind, import path, distribution metadata, or entry points as MSSP classification, activation approval, or runtime loading evidence.
 - Migration: Rust metadata consumers must not treat workspace membership, package/crate kind, Cargo target, feature, edition, or toolchain metadata as MSSP classification, activation approval, or runtime loading evidence.
+- Migration: Godot metadata consumers must not treat main-scene status, scene/script attachment, autoload registration, plugin state, signals, groups, resources, or engine metadata as MSSP classification, activation approval, or runtime loading evidence.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
