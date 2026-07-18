@@ -8,6 +8,7 @@ import {
 } from "../src/eml-adapter.js";
 import { evaluateAdapterConformance } from "../src/adapter.js";
 import {
+  validateAdapterConformanceSchema,
   validateAdapterDescriptorSchema,
   validateEmlAdapterInputSchema,
   validateIntermediateModelSchema,
@@ -37,8 +38,10 @@ describe("MSSP Adapter Contract v0.3 and EML adapter", () => {
     expect(validateEmlAdapterInputSchema(input)).toBe(true);
 
     const model = adaptEmlMsspExport(input, { revision: "fixture-revision" });
+    const conformance = evaluateAdapterConformance(EML_ADAPTER_DESCRIPTOR, model);
 
     expect(validateIntermediateModelSchema(model)).toBe(true);
+    expect(validateAdapterConformanceSchema(conformance)).toBe(true);
     expect(model.generatedBy.adapter).toBe("eml-mssp-export");
     expect(model.modules.map((module) => module.id)).toEqual([
       "core.echo",
@@ -53,7 +56,7 @@ describe("MSSP Adapter Contract v0.3 and EML adapter", () => {
       && relation.to === "core.echo"
     )).toBe(true);
     expect(model.modules.every((module) => module.source.revision === "fixture-revision")).toBe(true);
-    expect(evaluateAdapterConformance(EML_ADAPTER_DESCRIPTOR, model).ok).toBe(true);
+    expect(conformance.ok).toBe(true);
   });
 
   it("keeps a module-shaped EML symbol unclassified without an explicit declaration", () => {
