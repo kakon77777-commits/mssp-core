@@ -19,10 +19,17 @@
 - Added conservative generated-source recognition; generated files remain in inventory but are excluded from static dependency evidence.
 - Scanner dependencies remain separate from normative `relations`; candidates remain `unclassified` and contain no MSSP layer.
 - Added Repository Scanner and Intermediate Model specifications, Traditional Chinese guides, conformance tests, and CI artifact output.
+- Added deterministic evidence-backed layer classification suggestions through `mssp classify`.
+- Added advisory hypotheses for FMS, SCL, SMS, TMS, DMS, Router, Runtime, and `UNDETERMINED`.
+- Added normalized support scores, confidence bands, alternative layers, supporting evidence, counterevidence, and layer-specific unresolved questions.
+- Added aggregate-boundary exclusion and mandatory low confidence for truncated scans.
+- Added `schemas/classification-suggestions.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Classification reports preserve `autoPromotion: false` and `review-required`; they do not modify candidates, modules, layers, or runtime relations.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, classification suggestions, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
+- Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
