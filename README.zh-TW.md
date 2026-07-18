@@ -27,19 +27,18 @@ MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 欄
 ## MVP 與 v0.2 地基
 
 - `mssp init`：建立可直接採用的 MSSP 專案骨架。
-- `mssp lint`：檢查 YAML Schema、層級位置、依賴方向、FMS 純元資料、循環依賴、入口檔與 MSSP-VT 關聯。
+- `mssp lint`：檢查 Schema、層級位置、依賴方向、FMS 純元資料、循環依賴、入口檔與 MSSP-VT 關聯。
 - `mssp island`：執行 TMS 孤島規則檢查。
-- `mssp model`：從 manifest 輸出可重現、語言無關的 MSSP Intermediate Model。
+- `mssp model`：從 manifest 輸出可重現、語言無關的 Intermediate Model。
 - `mssp scan`：掃描既有倉庫，輸出有證據、尚未分類的結構候選。
 - `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
-- `mssp explain`：向人類與 Agent 輸出簡潔的架構清單。
+- `mssp explain`：向人類與 Agent 輸出簡潔架構清單。
 - `lint --json` 與 `island --json` 輸出 MSSP Diagnostic Protocol v0.2。
 - 公共診斷採穩定 `MSSP_*_NNN` 代碼，並以 `legacyCode` 保留 v0.1 內部代碼。
-- 中介模型具有可攜來源位置、明確 dependency／MSSP-VT 關係及證據紀錄。
-- GitHub Actions 與 PR 架構審查模板。
-- `examples/hello-mssp` 完整參考專案。
+- 中介模型具有可攜來源、正式關係與 Scanner 證據。
+- GitHub Actions、PR 架構審查與完整參考專案。
 
-Scanner 基礎層刻意不自動把候選判定成 SMS 或 TMS。它先整理結構證據，再交給後續受治理的分類流程。
+Scanner 不自動把候選判定成 SMS 或 TMS。它先整理結構與依賴證據，再交給後續受治理的分類流程。
 
 ## 五分鐘開始
 
@@ -69,49 +68,59 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 
 診斷 JSON 遵循 [`MSSP Diagnostic Protocol v0.2`](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)。外部工具應讀取 `diagnostics[].code`；過渡期舊代碼保留在 `diagnostics[].legacyCode`。
 
-`model` 與 `scan` 都輸出 [`MSSP Intermediate Model v0.2`](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)，作為 manifest、Repository Scanner、語言 Adapter、IDE、Agent、架構圖與未來 impact analysis 的共同交換格式。
+`model` 與 `scan` 都輸出 [`MSSP Intermediate Model v0.2`](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)。
 
-## Repository Scanner 基礎層
+## Repository Scanner v0.2
 
 ```text
 既有倉庫
-    ↓ 可重現的檔案盤點
-專案標記與結構慣例
-    ↓ 有證據的候選發現
+    ↓ 可重現、有界的盤點
+專案標記 / .gitignore / Workspace / 生成檔慣例
+    ↓ 靜態依賴證據
 尚未分類的 candidates
     ↓ 人工或受治理 Agent 審查
 正式 MSSP modules
 ```
 
-目前 Scanner 可以辨識常見 Node.js、Python、Rust、Go、Godot、JVM 與 .NET 專案標記，也能辨識慣例來源目錄與多模組容器下的子目錄。
+目前 Scanner 已包含：
 
-候選會保存：
+- Node.js、Python、Rust、Go、Godot、JVM 與 .NET 專案標記；
+- 慣例來源目錄與多模組邊界候選；
+- 根目錄與巢狀 `.gitignore` 靜態解析；
+- npm、pnpm、Cargo Workspace 發現；
+- Workspace 成員的結構信心加強；
+- JavaScript／TypeScript、Python、Go、Rust、GDScript 靜態引用抽取；
+- `internal`、`cross-boundary`、`workspace`、`external`、`unresolved` 五種 scope；
+- 保守的生成程式碼辨識。
+
+靜態依賴保存在 `discovery.dependencies`，不會被提升成 `relations`。source import 是證據，不是已批准的 runtime architecture contract。
+
+候選保存：
 
 - 倉庫相對路徑；
-- 邊界類型與邊界信心；
-- 檔案數與原始碼數；
-- 觀測到的語言；
+- 邊界類型與結構信心；
+- 檔案數、原始碼數與語言；
 - 來源與證據；
 - `status: unclassified`。
 
-`boundaryConfidence` 的意思是「這個路徑像不像一個獨立結構邊界」，不是「它有多大機率是 TMS」。
+`boundaryConfidence` 表示「這個路徑像不像獨立結構邊界」，不是「它有多大機率是 TMS」。
 
-預設最多掃描 50,000 個檔案。可用 `--max-files` 降低上限。達到上限時，輸出會將 `discovery.truncated` 設為 `true`。
+預設最多掃描 50,000 個檔案。達到上限時，`discovery.truncated` 會設為 `true`，工具不得把結果視為完整盤點。
 
 完整規格見 [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-REPOSITORY-SCANNER-v0.2.md)，中文說明見 [`docs/repository-scanner.zh-TW.md`](docs/repository-scanner.zh-TW.md)。
 
 ## 如何把既有專案改成 MSSP
 
-1. 先執行 `mssp scan` 建立結構證據盤點。
+1. 執行 `mssp scan` 建立結構與依賴證據盤點。
 2. 審查 candidates，不接受沒有證據的自動層級判定。
-3. 在專案根目錄加入 `mssp.yaml`。
+3. 在根目錄加入 `mssp.yaml`。
 4. 建立 `FMS/00_SYSTEM_NARRATIVE.md`、`FMS/01_MODULE_INDEX.md`、`FMS/02_ARCHITECTURE_NOTES.md`。
-5. 把任何任務閉環都不可缺少的穩定能力宣告成 SMS。
-6. 把按需載入、可替換、可獨立測試的能力宣告成 TMS；必須寫明啟動條件、權限、失敗模式、驗證與代表測試。
+5. 把任務閉環不可缺少的穩定能力宣告成 SMS。
+6. 把按需載入、可替換、可獨立測試的能力宣告成 TMS，並寫明啟動條件、權限、失敗模式、驗證與代表測試。
 7. 用 SCL 描述可變性與權限，用 DMS 描述診斷輸出。
-8. 在 CI 中執行 `mssp lint` 與 `mssp island`。
-9. 任何改變系統本體、模組邊界或依賴方向的 PR，都必須更新或明確審查 FMS。
-10. 相容性可能改變時，更新 MSSP-VT 的 `changeImpact`。
+8. 在 CI 執行 `mssp lint` 與 `mssp island`。
+9. 改變系統本體、模組邊界或依賴方向的 PR 必須審查 FMS。
+10. 相容性改變時更新 MSSP-VT `changeImpact`。
 
 ## 模組契約範例
 
@@ -154,29 +163,25 @@ maintainer: example-team
 
 ## 中立中介模型邊界
 
-不同來源都應轉成同一模型：
-
 ```text
 MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
                               ↓
                   MSSP Intermediate Model
                               ↓
-        Validator / Graph / IDE / Agent / Impact Analysis
+       Validator / Graph / IDE / Agent / Impact Analysis
 ```
 
-中介模型區分已批准的 `modules` 與尚未分類的 `candidates`。參考實作的輸出可重現、不暴露本機絕對路徑，並保留來源與證據。架構圖產生器透過中介模型讀取正式模組，而不是直接解析 manifest 結構。
+中介模型區分已批准的 `modules`、尚未分類的 `candidates`，以及正式 `relations` 與 Scanner 的 `discovery.dependencies`。輸出可重現、不暴露本機絕對路徑，並保留來源與證據。
 
 中文詳細說明見 [`docs/intermediate-model.zh-TW.md`](docs/intermediate-model.zh-TW.md)。
 
 ## 孤島測試
 
-TMS 在以下最小環境仍可被理解、載入與驗證，才算通過：
-
 ```text
 最小 Runtime + 已聲明 SMS + 外部工具 Mock
 ```
 
-TMS 不得直接依賴另一個 TMS。多個 TMS 的協作應由 Router／Runtime 編排，或把真正穩定且共用的契約提升為 SMS；不得形成隱藏的外掛單體。
+TMS 不得直接依賴另一個 TMS。多個 TMS 的協作應由 Router／Runtime 編排，或把真正穩定且共用的契約提升為 SMS。
 
 ## 與 EML 的關係
 
@@ -185,9 +190,7 @@ MSSP = 架構組織、能力定位、子集治理、系統導航
 EML  = 語義表達、壓縮、可執行語言工具鏈
 ```
 
-未來 `@eml/mssp-adapter` 應將 EML AST、CTS 與 trace 轉換為 MSSP Intermediate Model 與 Diagnostic Protocol；MSSP Core 本身不得依賴 EML。
-
-詳細操作見 [`docs/GITHUB-WORKFLOW.zh-TW.md`](docs/GITHUB-WORKFLOW.zh-TW.md)。診斷協定中文說明見 [`docs/diagnostic-protocol.zh-TW.md`](docs/diagnostic-protocol.zh-TW.md)。
+未來 `@eml/mssp-adapter` 應將 EML AST、CTS 與 trace 轉換為 Intermediate Model 與 Diagnostic Protocol；MSSP Core 本身不得依賴 EML。
 
 ## GitHub 實踐規則
 
@@ -201,7 +204,7 @@ EML  = 語義表達、壓縮、可執行語言工具鏈
 
 ## 目前狀態
 
-`v0.1.0` 是架構契約 MVP。v0.2 Repository Architecture Intelligence 已完成 Diagnostic Protocol、語言無關 Intermediate Model 與可重現 Repository Scanner 基礎層。依賴感知邊界精修、有證據的層級分類、candidate promotion、FMS／程式碼漂移與 Git diff impact inference 尚未完成。
+`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 已完成 Diagnostic Protocol、Intermediate Model、Scanner 基礎層、`.gitignore` 證據、Workspace 發現、靜態依賴 scope 與生成檔過濾。尚未完成 Tree-sitter／編譯器等級解析、有證據的層級分類、candidate 升格、FMS／程式碼漂移及 Git diff impact inference。
 
 ## 授權
 
