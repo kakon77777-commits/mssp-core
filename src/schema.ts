@@ -26,7 +26,12 @@ function readSchema(name: string): object {
   return JSON.parse(readFileSync(join(schemasRoot, name), "utf8")) as object;
 }
 
-const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: true,
+  strictRequired: false,
+  allowUnionTypes: true,
+});
 addFormats(ajv);
 
 export const validateProjectSchema: ValidateFunction = ajv.compile(
