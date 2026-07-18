@@ -34,7 +34,7 @@ mssp graph examples/hello-mssp                           PASS
 validation artifact upload                              PASS
 ```
 
-Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. The current GitHub Actions run and artifact are intentionally not duplicated in this versioned file; they remain attached to the current commit and Draft PR.
+Implementation behavior includes real temporary-Git tests for addition and deletion project-boundary transitions. Current workflow-run and artifact identifiers remain attached to GitHub Actions and the Draft PR rather than this versioned report.
 
 ## Protocol and model conformance
 
