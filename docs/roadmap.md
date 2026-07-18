@@ -14,7 +14,7 @@
 
 ## v0.2 — Repository architecture intelligence
 
-**Status:** In progress.
+**Status:** Core vertical slices complete; compiler-grade refinement remains optional follow-up work.
 
 - [x] Language-neutral MSSP Intermediate Model.
   - deterministic JSON representation;
@@ -76,7 +76,16 @@
   - `semanticEquivalence: false` and `autoMutation: false` invariants;
   - stable `MSSP_DRIFT_001` through `MSSP_DRIFT_010` codes;
   - `mssp drift`, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
-- [ ] Git diff impact analysis using MSSP-VT.
+- [x] Git diff impact analysis using MSSP-VT.
+  - direct Git name-status comparison with rename detection;
+  - project-relative path normalization and cross-boundary transition records;
+  - direct module ownership for manifest, entry, and source changes;
+  - transitive propagation through `affects`, `affectedBy`, `requires`, and compatibility relations;
+  - FMS, SCL, module-contract, version, compatibility, test, and island review obligations;
+  - unowned, overlapping, stale-target, deleted-entry, and generated-source uncertainty findings;
+  - explicit `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false` invariants;
+  - stable `MSSP_IMPACT_*` codes;
+  - `mssp impact`, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [x] JSON diagnostic protocol for IDEs and agents.
   - stable `MSSP_*_NNN` codes;
   - v0.1 `legacyCode` migration field;
