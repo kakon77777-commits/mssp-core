@@ -28,6 +28,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: node dist/cli.js adapters --json --out adapter-descriptors.json
+      - run: node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision "${{ github.sha }}" --out eml-intermediate-model.json
       - run: node dist/cli.js lint examples/hello-mssp
       - run: node dist/cli.js lint examples/hello-mssp --json > diagnostics.json
       - run: node dist/cli.js island examples/hello-mssp
@@ -45,11 +47,13 @@ jobs:
         with:
           name: mssp-validation-artifacts
           path: |
+            adapter-descriptors.json
             architecture-drift.json
             architecture.html
             architecture.mmd
             classification-suggestions.json
             diagnostics.json
+            eml-intermediate-model.json
             git-diff-impact.json
             island-diagnostics.json
             intermediate-model.json
