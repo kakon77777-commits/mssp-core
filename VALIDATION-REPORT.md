@@ -18,11 +18,12 @@ The implementation is validated from clean Draft PR merge-ref checkouts with com
 ```text
 npm ci --no-audit --no-fund                                      PASS
 npm run typecheck                                                PASS
-npm test                                                         PASS — 13 test files, 56 tests
+npm test                                                         PASS — 14 test files, 64 tests
 npm run build                                                    PASS
 mssp adapters --json --out adapter-descriptors.json              PASS
 mssp adapt eml examples/eml-adapter/semantic-export.json ...     PASS
 mssp adapt python examples/python-adapter/semantic-export.json ... PASS
+mssp adapt rust examples/rust-adapter/semantic-export.json ...   PASS
 mssp lint examples/hello-mssp                                    PASS
 mssp lint examples/hello-mssp --json                             PASS
 mssp island examples/hello-mssp                                  PASS
@@ -55,7 +56,8 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Adapter conformance reports validate against `schemas/adapter-conformance.schema.json`.
 - EML semantic exports validate against `schemas/eml-adapter-input.schema.json`.
 - Python semantic exports validate against `schemas/python-adapter-input.schema.json`.
-- EML- and Python-adapted outputs validate against `schemas/intermediate-model.schema.json`.
+- Rust semantic exports validate against `schemas/rust-adapter-input.schema.json`.
+- EML-, Python-, and Rust-adapted outputs validate against `schemas/intermediate-model.schema.json`.
 - Manifest models emit declared `modules` and an empty `candidates` array.
 - Scanner models emit unclassified `candidates`, discovery evidence, and no invented MSSP layer assignments.
 - Scanner static dependencies remain in `discovery.dependencies`; normative `relations` remain empty.
@@ -65,7 +67,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Impact reports preserve `mode: static-conservative`, `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`.
 - Visualization Models preserve `readOnly: true` and `autoMutation: false`.
 - Adapter descriptors preserve `deterministic: true`, `readOnly: true`, `noExecution: true`, `noNetwork: true`, `autoPromotion: false`, and `autoMutation: false`.
-- Model, scanner, classifier, fixed-input review, drift, impact, visualization, EML adapter, and Python adapter output are deterministic for identical inputs and options.
+- Model, scanner, classifier, fixed-input review, drift, impact, visualization, EML adapter, Python adapter, and Rust adapter output are deterministic for identical inputs and options.
 - Source and changed-file references are portable and project-relative where applicable.
 
 ## Verified scanner and classification behavior
@@ -134,22 +136,26 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Source links preserve repository-relative source identity.
 - Visualization cannot classify, promote, approve, register, execute, or mutate the architecture it displays.
 
-## Verified Adapter Contract, Registry, EML, and Python behavior
+## Verified Adapter Contract, Registry, EML, Python, and Rust behavior
 
-- EML and Python adapter descriptors are schema-valid and advertise fixed read-only, offline, and non-executing invariants.
-- The registry emits descriptors in stable adapter-ID order and resolves `eml`, `python`, and `py` aliases without ecosystem-specific CLI branches.
-- `mssp adapters --json` emits both machine-readable descriptors through the public CLI.
+- EML, Python, and Rust adapter descriptors are schema-valid and advertise fixed read-only, offline, and non-executing invariants.
+- The registry emits descriptors in stable adapter-ID order and resolves `eml`, `python`, `py`, `rust`, and `rs` aliases without ecosystem-specific CLI branches.
+- `mssp adapters --json` emits all three machine-readable descriptors through the public CLI.
 - `mssp adapt eml` consumes only a versioned `eml-mssp-export` JSON document.
 - `mssp adapt python` consumes only a versioned `python-mssp-export` JSON document.
+- `mssp adapt rust` consumes only a versioned `rust-mssp-export` JSON document.
 - Complete explicit declarations map to Intermediate Modules with adapter provenance.
-- EML symbols and Python components without complete declarations remain `unclassified` candidates even when source metadata describes them as modules, packages, plugins, commands, or services.
+- EML symbols, Python components, and Rust components without complete declarations remain `unclassified` candidates even when source metadata describes them as modules, packages, plugins, commands, services, crates, libraries, binaries, build scripts, or procedural macros.
 - Python import paths and entry points remain metadata and do not grant architecture authority.
+- Rust workspace membership, Cargo package/crate identity, targets, features, editions, toolchains, crate types, and target triples remain metadata and do not grant architecture authority.
 - Incomplete declarations are rejected rather than completed heuristically.
 - Duplicate EML symbol identities are rejected.
 - Duplicate Python component IDs and qualified names are rejected.
+- Duplicate Rust component IDs and Cargo identities are rejected.
 - Duplicate layer and policy identities are rejected.
 - Normative `requires`, `affects`, and `affected-by` relations are emitted only from complete explicit declarations.
 - Python imports, distribution dependencies, entry points, decorators, names, and source proximity do not become normative relations.
+- Cargo dependency tables, features, `use` statements, crate imports, workspace membership, build scripts, procedural macros, target types, names, and source proximity do not become normative relations.
 - Unknown relation targets remain visible rather than being deleted.
 - Every emitted source uses `kind: adapter`, identifies the producing adapter, and uses a portable URI.
 - Absolute filesystem source paths are rejected.
@@ -159,6 +165,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Conformance evaluation detects invalid descriptor/output schemas, adapter identity mismatch, duplicate or overlapping identities, unstable ordering, and invalid source provenance.
 - The EML adapter does not parse raw `.eml`, execute EML, resolve imports, read source-URI targets, invoke Git, invoke a package manager, or access the network.
 - The Python adapter does not import or execute Python, invoke an interpreter, inspect virtual environments, run package managers or build backends, resolve imports, read source-URI targets, invoke Git, or access the network.
+- The Rust adapter does not execute Cargo, rustc, rustup, linkers, build scripts, procedural macros, crates, registries, dependency resolution, source-URI targets, Git, or network access.
 - Adapter output represents source declarations only; it does not prove SCL approval, compatibility, registration, runtime loading, or deployment readiness.
 
 ## Verified architecture boundaries
@@ -197,5 +204,6 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No graph editor, architecture mutation UI, large-graph virtualization, or multi-view layout refinement.
 - No direct raw-EML parser integration or live EML toolchain bridge; the current adapter consumes a versioned semantic export.
 - No direct Python AST, packaging-tool, interpreter, or live-environment integration; the current adapter consumes a versioned semantic export.
-- No Rust, Godot, or Agent Skill adapters.
+- No direct Rust compiler, Cargo graph, build-script, procedural-macro, registry, or live-toolchain integration; the current adapter consumes a versioned semantic export.
+- No Godot or Agent Skill adapters.
 - No AISMBI/MCL implementation.
