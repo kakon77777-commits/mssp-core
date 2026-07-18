@@ -1,3 +1,5 @@
+import { buildIntermediateModel } from "./model.js";
+import type { MsspIntermediateModel } from "./model.js";
 import type { LoadedProject, MsspLayer } from "./types.js";
 
 export interface GraphNode {
@@ -20,24 +22,28 @@ export interface MsspGraph {
   edges: GraphEdge[];
 }
 
-export function buildGraph(project: LoadedProject): MsspGraph {
+export function buildGraphFromModel(model: MsspIntermediateModel): MsspGraph {
   return {
-    project: project.manifest.id,
-    nodes: project.modules.map(({ manifest }) => ({
-      id: manifest.id,
-      label: manifest.name,
-      layer: manifest.layer,
-      version: manifest.version,
-      purpose: manifest.purpose,
+    project: model.project.id,
+    nodes: model.modules.map((module) => ({
+      id: module.id,
+      label: module.name,
+      layer: module.layer,
+      version: module.version,
+      purpose: module.purpose,
     })),
-    edges: project.modules.flatMap(({ manifest }) =>
-      manifest.requires.modules.map((dependency) => ({
-        from: manifest.id,
-        to: dependency,
+    edges: model.relations
+      .filter((relation) => relation.kind === "requires")
+      .map((relation) => ({
+        from: relation.from,
+        to: relation.to,
         kind: "requires" as const,
       })),
-    ),
   };
+}
+
+export function buildGraph(project: LoadedProject): MsspGraph {
+  return buildGraphFromModel(buildIntermediateModel(project));
 }
 
 function mermaidId(id: string): string {
