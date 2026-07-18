@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization, Adapter Contract, and first EML reference adapter complete; additional ecosystem adapters remain.
+**Status:** Visualization, Adapter Contract, EML Adapter, and Python Adapter complete; additional ecosystem adapters remain.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -116,6 +116,11 @@
   - explicit module/candidate authority separation;
   - public TypeScript APIs and `mssp adapters` discovery command;
   - JSON Schemas, normative specification, tests, and CI artifacts.
+- [x] Declarative Adapter Builder and Registry.
+  - shared explicit-declaration, candidate, relation, provenance, and sorting logic;
+  - stable alias resolution and descriptor discovery;
+  - ecosystem adapters retain their own input schema and metadata mapping;
+  - no classification, execution, network access, promotion, or mutation authority.
 - [x] EML adapter.
   - versioned `eml-mssp-export` semantic-export input;
   - `mssp adapt eml` CLI;
@@ -124,7 +129,16 @@
   - normative relations emitted only from explicit declarations;
   - no raw EML parsing, EML execution, network, source mutation, or project registration;
   - reference fixture, specification, Traditional Chinese guide, tests, and CI artifact.
-- [ ] Python adapter.
+- [x] Python adapter.
+  - versioned `python-mssp-export` semantic-export input;
+  - `mssp adapt python` and `mssp adapt py` aliases;
+  - Python distribution, interpreter requirement, build backend, qualified name, import path, and entry-point metadata preservation;
+  - complete explicit declarations mapped to modules;
+  - undeclared packages, plugins, commands, modules, and services preserved as unclassified candidates;
+  - duplicate component and qualified-name rejection;
+  - normative relations emitted only from explicit declarations;
+  - no Python import, execution, interpreter, virtual-environment, package-manager, build-backend, network, source mutation, or project registration;
+  - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
 - [ ] Rust adapter.
 - [ ] Godot adapter.
 - [ ] Agent Skill adapter.
