@@ -95,7 +95,7 @@
 
 ## v0.3 — Visualization and adapters
 
-**Status:** Visualization, Adapter Contract, EML Adapter, and Python Adapter complete; additional ecosystem adapters remain.
+**Status:** Visualization, Adapter Contract, EML, Python, and Rust adapters complete; Godot or Agent Skill coverage remains.
 
 - [x] `mssp-viz` interactive architecture graph foundation.
   - deterministic Visualization Model v0.3;
@@ -139,7 +139,7 @@
   - normative relations emitted only from explicit declarations;
   - no Python import, execution, interpreter, virtual-environment, package-manager, build-backend, network, source mutation, or project registration;
   - reference fixture, JSON Schema, normative specification, Traditional Chinese guide, tests, and CI artifact.
-- [ ] Rust adapter.
+- [x] Rust adapter.
 - [ ] Godot adapter.
 - [ ] Agent Skill adapter.
 - [ ] Multi-view layout and large-graph performance refinement.
