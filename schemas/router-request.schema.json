@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/mssp/router-request.schema.json",
+  "title": "MSSP Router Request v0.4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "requestId",
+    "intent",
+    "facts",
+    "msspVersion",
+    "availableInputs",
+    "requiredOutputs",
+    "availableModules",
+    "availableTools",
+    "availableData",
+    "requestedPermissions",
+    "maxRiskLevel"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.4" },
+    "kind": { "const": "mssp-router-request" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "intent": { "type": "string", "minLength": 1 },
+    "facts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      }
+    },
+    "msspVersion": { "type": "string", "minLength": 1 },
+    "availableInputs": { "$ref": "#/$defs/stringSet" },
+    "requiredOutputs": { "$ref": "#/$defs/stringSet" },
+    "availableModules": { "$ref": "#/$defs/stringSet" },
+    "availableTools": { "$ref": "#/$defs/stringSet" },
+    "availableData": { "$ref": "#/$defs/stringSet" },
+    "requestedPermissions": { "$ref": "#/$defs/stringSet" },
+    "maxRiskLevel": { "enum": ["L0", "L1", "L2", "L3", "L4"] },
+    "targetModules": {
+      "allOf": [
+        { "$ref": "#/$defs/stringSet" },
+        { "minItems": 1 }
+      ]
+    }
+  },
+  "$defs": {
+    "stringSet": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
