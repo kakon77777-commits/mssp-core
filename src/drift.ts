@@ -13,10 +13,7 @@ import {
 } from "node:path";
 import { isGeneratedSource } from "./repository-evidence.js";
 import { MSSP_LAYERS } from "./types.js";
-import type {
-  LoadedProject,
-  MsspLayer,
-} from "./types.js";
+import type { LoadedProject, MsspLayer } from "./types.js";
 
 export const MSSP_ARCHITECTURE_DRIFT_VERSION = "0.2" as const;
 export const MSSP_ARCHITECTURE_DRIFT_KIND = "mssp-architecture-drift-report" as const;
@@ -104,13 +101,13 @@ export interface ArchitectureDriftOptions {
   implementationVersion?: string;
 }
 
-interface IndexedModule {
+export interface IndexedModule {
   id: string;
   layer: string;
   line: number;
 }
 
-interface ParsedModuleIndex {
+export interface ParsedModuleIndex {
   parsed: boolean;
   entries: IndexedModule[];
 }
@@ -134,6 +131,14 @@ const CANONICAL_FMS_DOCUMENTS = [
   "02_ARCHITECTURE_NOTES.md",
 ] as const;
 
+const EXECUTABLE_LAYERS = new Set<MsspLayer>([
+  "SMS",
+  "TMS",
+  "DMS",
+  "ROUTER",
+  "RUNTIME",
+]);
+
 const SOURCE_EXTENSIONS = new Set([
   ".c", ".cc", ".cpp", ".cxx", ".cs", ".go", ".java", ".js", ".jsx",
   ".kt", ".kts", ".lua", ".php", ".py", ".rb", ".rs", ".sh", ".swift",
@@ -141,29 +146,13 @@ const SOURCE_EXTENSIONS = new Set([
 ]);
 
 const SKIP_DIRECTORIES = new Set([
-  ".cache",
-  ".git",
-  ".idea",
-  ".mypy_cache",
-  ".next",
-  ".nuxt",
-  ".pytest_cache",
-  ".tmp",
-  ".venv",
-  ".vscode",
-  "bin",
-  "build",
-  "coverage",
-  "dist",
-  "node_modules",
-  "obj",
-  "target",
-  "venv",
+  ".cache", ".git", ".idea", ".mypy_cache", ".next", ".nuxt",
+  ".pytest_cache", ".tmp", ".venv", ".vscode", "bin", "build",
+  "coverage", "dist", "node_modules", "obj", "target", "venv",
 ]);
 
 function portablePath(root: string, value: string): string {
-  const path = relative(root, value).replaceAll("\\", "/");
-  return path || ".";
+  return relative(root, value).replaceAll("\\", "/") || ".";
 }
 
 function pathInside(root: string, child: string): boolean {
@@ -181,36 +170,37 @@ function cleanCell(value: string): string {
 function tableCells(line: string): string[] {
   const trimmed = line.trim();
   if (!trimmed.includes("|")) return [];
-  const body = trimmed.replace(/^\|/, "").replace(/\|$/, "");
-  return body.split("|").map(cleanCell);
+  return trimmed
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map(cleanCell);
 }
 
-function isSeparatorRow(cells: readonly string[]): boolean {
+function separatorRow(cells: readonly string[]): boolean {
   return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
 }
 
 export function parseFmsModuleIndex(text: string): ParsedModuleIndex {
   const lines = text.split(/\r?\n/);
-  for (let index = 0; index < lines.length; index += 1) {
-    const cells = tableCells(lines[index] ?? "");
+  for (let header = 0; header < lines.length; header += 1) {
+    const cells = tableCells(lines[header] ?? "");
     const normalized = cells.map((cell) => cell.toLowerCase());
     const idColumn = normalized.indexOf("id");
     const layerColumn = normalized.indexOf("layer");
     if (idColumn < 0 || layerColumn < 0) continue;
 
     const entries: IndexedModule[] = [];
-    for (let row = index + 1; row < lines.length; row += 1) {
+    for (let row = header + 1; row < lines.length; row += 1) {
       const rowCells = tableCells(lines[row] ?? "");
       if (!rowCells.length) {
-        if (entries.length) break;
+        if (entries.length > 0) break;
         continue;
       }
-      if (isSeparatorRow(rowCells)) continue;
+      if (separatorRow(rowCells)) continue;
       const id = rowCells[idColumn]?.trim() ?? "";
       const layer = rowCells[layerColumn]?.trim() ?? "";
-      if (!id && !layer) continue;
-      if (!id || !layer) continue;
-      entries.push({ id, layer: layer.toUpperCase(), line: row + 1 });
+      if (id && layer) entries.push({ id, layer: layer.toUpperCase(), line: row + 1 });
     }
     return { parsed: true, entries };
   }
@@ -219,12 +209,12 @@ export function parseFmsModuleIndex(text: string): ParsedModuleIndex {
 
 function collectSourceInventory(project: LoadedProject, maxFiles: number): SourceInventory {
   const sourceFiles: SourceObservation[] = [];
-  const seenFiles = new Set<string>();
+  const seen = new Set<string>();
   let examinedFiles = 0;
   let generatedSourceFilesExcluded = 0;
   let truncated = false;
 
-  function walk(directory: string, layer: MsspLayer): void {
+  const walk = (directory: string, layer: MsspLayer): void => {
     if (truncated || !existsSync(directory) || !statSync(directory).isDirectory()) return;
     const entries = readdirSync(directory, { withFileTypes: true })
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -238,8 +228,8 @@ function collectSourceInventory(project: LoadedProject, maxFiles: number): Sourc
       }
       if (!entry.isFile()) continue;
       const normalized = resolve(absolute);
-      if (seenFiles.has(normalized)) continue;
-      seenFiles.add(normalized);
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
       if (examinedFiles >= maxFiles) {
         truncated = true;
         return;
@@ -253,7 +243,7 @@ function collectSourceInventory(project: LoadedProject, maxFiles: number): Sourc
       }
       sourceFiles.push({ absolute, path, layer });
     }
-  }
+  };
 
   for (const layer of MSSP_LAYERS) {
     const configured = project.manifest.layers[layer];
@@ -268,12 +258,6 @@ function collectSourceInventory(project: LoadedProject, maxFiles: number): Sourc
   };
 }
 
-function finding(
-  value: ArchitectureDriftFinding,
-): ArchitectureDriftFinding {
-  return value;
-}
-
 function sourceEvidence(paths: readonly string[], total: number): ArchitectureDriftEvidence[] {
   return paths.slice(0, 50).map((path) => ({
     kind: "source",
@@ -281,6 +265,264 @@ function sourceEvidence(paths: readonly string[], total: number): ArchitectureDr
     uri: path,
     data: { total },
   }));
+}
+
+function declaredBoundaryEvidence(
+  project: LoadedProject,
+  layer: MsspLayer,
+  verb: "owns the boundary rooted at" | "is rooted at",
+): ArchitectureDriftEvidence[] {
+  return project.modules
+    .filter((module) => module.manifest.layer === layer)
+    .sort((a, b) => a.manifest.id.localeCompare(b.manifest.id))
+    .map((module): ArchitectureDriftEvidence => ({
+      kind: "declaration",
+      message: `${module.manifest.id} ${verb} ${portablePath(project.root, module.directory)}.`,
+      uri: portablePath(project.root, module.file),
+    }));
+}
+
+function addMissingFmsDocuments(
+  project: LoadedProject,
+  findings: ArchitectureDriftFinding[],
+): number {
+  const fmsRoot = join(project.root, project.manifest.layers.FMS);
+  let found = 0;
+  for (const name of CANONICAL_FMS_DOCUMENTS) {
+    const absolute = join(fmsRoot, name);
+    if (existsSync(absolute)) {
+      found += 1;
+      continue;
+    }
+    findings.push({
+      code: "MSSP_DRIFT_001",
+      severity: "warning",
+      status: "drift",
+      category: "fms-presence",
+      message: `Canonical FMS document is missing: ${name}.`,
+      path: portablePath(project.root, absolute),
+      declared: [{
+        kind: "declaration",
+        message: "The v0.2 drift profile expects canonical identity, module-index, and architecture-notes documents.",
+        uri: portablePath(project.root, project.manifestFile),
+      }],
+      observed: [],
+      suggestedActions: [
+        `Create ${portablePath(project.root, absolute)} or declare a profile-specific equivalent.`,
+      ],
+    });
+  }
+  return found;
+}
+
+function compareModuleIndex(
+  project: LoadedProject,
+  findings: ArchitectureDriftFinding[],
+): ParsedModuleIndex {
+  const moduleIndexPath = join(project.root, project.manifest.layers.FMS, "01_MODULE_INDEX.md");
+  if (!existsSync(moduleIndexPath)) return { parsed: false, entries: [] };
+
+  const parsed = parseFmsModuleIndex(readFileSync(moduleIndexPath, "utf8"));
+  const indexUri = portablePath(project.root, moduleIndexPath);
+  if (!parsed.parsed) {
+    findings.push({
+      code: "MSSP_DRIFT_002",
+      severity: "warning",
+      status: "indeterminate",
+      category: "module-index",
+      message: "FMS module index has no parseable Markdown table with ID and Layer columns.",
+      path: indexUri,
+      declared: [],
+      observed: [{
+        kind: "fms",
+        message: "Unrestricted prose is not treated as a machine-readable module declaration.",
+        uri: indexUri,
+      }],
+      suggestedActions: ["Add a Markdown table with exact ID and Layer columns."],
+    });
+    return parsed;
+  }
+
+  const declaredById = new Map(project.modules.map((module) => [module.manifest.id, module]));
+  const indexedById = new Map<string, IndexedModule[]>();
+  for (const entry of parsed.entries) {
+    const values = indexedById.get(entry.id) ?? [];
+    values.push(entry);
+    indexedById.set(entry.id, values);
+  }
+
+  for (const [id, entries] of indexedById) {
+    if (entries.length < 2) continue;
+    findings.push({
+      code: "MSSP_DRIFT_006",
+      severity: "error",
+      status: "drift",
+      category: "module-index",
+      message: `FMS module index contains duplicate entries for ${id}.`,
+      moduleId: id,
+      path: indexUri,
+      declared: [],
+      observed: entries.map((entry): ArchitectureDriftEvidence => ({
+        kind: "fms",
+        message: `${id} is indexed as ${entry.layer}.`,
+        uri: indexUri,
+        line: entry.line,
+      })),
+      suggestedActions: ["Keep exactly one authoritative index row for each module id."],
+    });
+  }
+
+  for (const module of [...project.modules].sort((a, b) => a.manifest.id.localeCompare(b.manifest.id))) {
+    const entries = indexedById.get(module.manifest.id) ?? [];
+    if (!entries.length) {
+      findings.push({
+        code: "MSSP_DRIFT_003",
+        severity: "warning",
+        status: "drift",
+        category: "module-index",
+        message: `Declared module is missing from the FMS module index: ${module.manifest.id}.`,
+        moduleId: module.manifest.id,
+        layer: module.manifest.layer,
+        path: portablePath(project.root, module.file),
+        declared: [{
+          kind: "declaration",
+          message: `${module.manifest.id} declares layer ${module.manifest.layer}.`,
+          uri: portablePath(project.root, module.file),
+        }],
+        observed: [],
+        suggestedActions: ["Add the module id, layer, and responsibility to FMS/01_MODULE_INDEX.md."],
+      });
+      continue;
+    }
+    const entry = entries[0];
+    if (entry && entry.layer !== module.manifest.layer) {
+      findings.push({
+        code: "MSSP_DRIFT_005",
+        severity: "error",
+        status: "drift",
+        category: "module-index",
+        message: `FMS index and module manifest disagree on the layer of ${module.manifest.id}.`,
+        moduleId: module.manifest.id,
+        layer: module.manifest.layer,
+        path: indexUri,
+        declared: [{
+          kind: "declaration",
+          message: `Manifest declares ${module.manifest.layer}.`,
+          uri: portablePath(project.root, module.file),
+        }],
+        observed: [{
+          kind: "fms",
+          message: `FMS index records ${entry.layer}.`,
+          uri: indexUri,
+          line: entry.line,
+        }],
+        suggestedActions: ["Review the layer decision and update both declarations consistently."],
+      });
+    }
+  }
+
+  for (const entry of parsed.entries) {
+    if (declaredById.has(entry.id)) continue;
+    findings.push({
+      code: "MSSP_DRIFT_004",
+      severity: "warning",
+      status: "drift",
+      category: "module-index",
+      message: `FMS module index references an undeclared module: ${entry.id}.`,
+      moduleId: entry.id,
+      path: indexUri,
+      declared: [],
+      observed: [{
+        kind: "fms",
+        message: `${entry.id} is indexed as ${entry.layer}.`,
+        uri: indexUri,
+        line: entry.line,
+      }],
+      suggestedActions: ["Declare the module with a manifest or remove the stale index row."],
+    });
+  }
+  return parsed;
+}
+
+function compareSourceOwnership(
+  project: LoadedProject,
+  inventory: SourceInventory,
+  findings: ArchitectureDriftFinding[],
+): void {
+  for (const layer of ["FMS", "SCL"] as const) {
+    const paths = inventory.sourceFiles
+      .filter((source) => source.layer === layer)
+      .map((source) => source.path);
+    if (!paths.length) continue;
+    findings.push({
+      code: "MSSP_DRIFT_010",
+      severity: "error",
+      status: "drift",
+      category: "layer-boundary",
+      message: `${layer} is declarative metadata but contains executable source.`,
+      layer,
+      path: project.manifest.layers[layer],
+      declared: [{
+        kind: "declaration",
+        message: `${layer} is a metadata/governance layer rather than an executable module layer.`,
+        uri: portablePath(project.root, project.manifestFile),
+      }],
+      observed: sourceEvidence(paths, paths.length),
+      suggestedActions: [`Move executable behavior out of ${layer} into an explicitly declared module.`],
+    });
+  }
+
+  const unowned = new Map<MsspLayer, string[]>();
+  const ambiguous = new Map<MsspLayer, string[]>();
+  for (const source of inventory.sourceFiles) {
+    if (!EXECUTABLE_LAYERS.has(source.layer)) continue;
+    const owners = project.modules.filter((module) =>
+      module.manifest.layer === source.layer && pathInside(module.directory, source.absolute)
+    );
+    const target = owners.length === 0 ? unowned : owners.length > 1 ? ambiguous : undefined;
+    if (!target) continue;
+    const paths = target.get(source.layer) ?? [];
+    paths.push(source.path);
+    target.set(source.layer, paths);
+  }
+
+  for (const layer of [...unowned.keys()].sort()) {
+    const configured = project.manifest.layers[layer];
+    if (!configured) continue;
+    const paths = unowned.get(layer) ?? [];
+    findings.push({
+      code: "MSSP_DRIFT_007",
+      severity: "warning",
+      status: "drift",
+      category: "source-ownership",
+      message: `${paths.length} executable source file(s) under ${layer} are outside every declared module boundary.`,
+      layer,
+      path: configured,
+      declared: declaredBoundaryEvidence(project, layer, "owns the boundary rooted at"),
+      observed: sourceEvidence(paths, paths.length),
+      suggestedActions: [
+        "Move the source into an existing module boundary, or govern, promote, and register a new module.",
+      ],
+    });
+  }
+
+  for (const layer of [...ambiguous.keys()].sort()) {
+    const configured = project.manifest.layers[layer];
+    if (!configured) continue;
+    const paths = ambiguous.get(layer) ?? [];
+    findings.push({
+      code: "MSSP_DRIFT_008",
+      severity: "warning",
+      status: "drift",
+      category: "source-ownership",
+      message: `${paths.length} executable source file(s) under ${layer} have overlapping module ownership.`,
+      layer,
+      path: configured,
+      declared: declaredBoundaryEvidence(project, layer, "is rooted at"),
+      observed: sourceEvidence(paths, paths.length),
+      suggestedActions: ["Remove nested or overlapping manifest ownership."],
+    });
+  }
 }
 
 export function buildArchitectureDriftReport(
@@ -293,164 +535,12 @@ export function buildArchitectureDriftReport(
   }
 
   const findings: ArchitectureDriftFinding[] = [];
-  const fmsRoot = join(project.root, project.manifest.layers.FMS);
-  let canonicalFmsDocumentsFound = 0;
-
-  for (const name of CANONICAL_FMS_DOCUMENTS) {
-    const absolute = join(fmsRoot, name);
-    if (existsSync(absolute)) {
-      canonicalFmsDocumentsFound += 1;
-      continue;
-    }
-    findings.push(finding({
-      code: "MSSP_DRIFT_001",
-      severity: "warning",
-      status: "drift",
-      category: "fms-presence",
-      message: `Canonical FMS document is missing: ${name}.`,
-      path: portablePath(project.root, absolute),
-      declared: [{
-        kind: "declaration",
-        message: "The v0.2 drift profile expects the canonical FMS identity, module index, and architecture notes documents.",
-        uri: portablePath(project.root, project.manifestFile),
-      }],
-      observed: [],
-      suggestedActions: [
-        `Create ${portablePath(project.root, absolute)} or document an explicit profile-specific equivalent.`,
-      ],
-    }));
-  }
-
-  const moduleIndexPath = join(fmsRoot, "01_MODULE_INDEX.md");
-  let parsedIndex: ParsedModuleIndex = { parsed: false, entries: [] };
-  if (existsSync(moduleIndexPath)) {
-    parsedIndex = parseFmsModuleIndex(readFileSync(moduleIndexPath, "utf8"));
-    if (!parsedIndex.parsed) {
-      findings.push(finding({
-        code: "MSSP_DRIFT_002",
-        severity: "warning",
-        status: "indeterminate",
-        category: "module-index",
-        message: "FMS module index exists but no Markdown table with ID and Layer columns could be parsed.",
-        path: portablePath(project.root, moduleIndexPath),
-        declared: [],
-        observed: [{
-          kind: "fms",
-          message: "The analyzer intentionally does not infer module declarations from unrestricted prose.",
-          uri: portablePath(project.root, moduleIndexPath),
-        }],
-        suggestedActions: [
-          "Add a Markdown table with exact ID and Layer columns, or use another declared interoperability profile.",
-        ],
-      }));
-    }
-  }
-
-  if (parsedIndex.parsed) {
-    const declaredById = new Map(project.modules.map((module) => [module.manifest.id, module]));
-    const indexedById = new Map<string, IndexedModule[]>();
-    for (const entry of parsedIndex.entries) {
-      const values = indexedById.get(entry.id) ?? [];
-      values.push(entry);
-      indexedById.set(entry.id, values);
-    }
-
-    for (const [id, entries] of indexedById) {
-      if (entries.length > 1) {
-        findings.push(finding({
-          code: "MSSP_DRIFT_006",
-          severity: "error",
-          status: "drift",
-          category: "module-index",
-          message: `FMS module index contains duplicate entries for ${id}.`,
-          moduleId: id,
-          path: portablePath(project.root, moduleIndexPath),
-          declared: [],
-          observed: entries.map((entry) => ({
-            kind: "fms",
-            message: `${id} is indexed as ${entry.layer}.`,
-            uri: portablePath(project.root, moduleIndexPath),
-            line: entry.line,
-          })),
-          suggestedActions: ["Keep exactly one authoritative index row for each module id."],
-        }));
-      }
-    }
-
-    for (const module of [...project.modules].sort((a, b) => a.manifest.id.localeCompare(b.manifest.id))) {
-      const entries = indexedById.get(module.manifest.id) ?? [];
-      if (!entries.length) {
-        findings.push(finding({
-          code: "MSSP_DRIFT_003",
-          severity: "warning",
-          status: "drift",
-          category: "module-index",
-          message: `Declared module is missing from the FMS module index: ${module.manifest.id}.`,
-          moduleId: module.manifest.id,
-          layer: module.manifest.layer,
-          path: portablePath(project.root, module.file),
-          declared: [{
-            kind: "declaration",
-            message: `${module.manifest.id} declares layer ${module.manifest.layer}.`,
-            uri: portablePath(project.root, module.file),
-          }],
-          observed: [],
-          suggestedActions: ["Add the module id, layer, and responsibility to FMS/01_MODULE_INDEX.md."],
-        }));
-        continue;
-      }
-      const entry = entries[0];
-      if (entry && entry.layer !== module.manifest.layer) {
-        findings.push(finding({
-          code: "MSSP_DRIFT_005",
-          severity: "error",
-          status: "drift",
-          category: "module-index",
-          message: `FMS index and module manifest disagree on the layer of ${module.manifest.id}.`,
-          moduleId: module.manifest.id,
-          layer: module.manifest.layer,
-          path: portablePath(project.root, moduleIndexPath),
-          declared: [{
-            kind: "declaration",
-            message: `Manifest declares ${module.manifest.layer}.`,
-            uri: portablePath(project.root, module.file),
-          }],
-          observed: [{
-            kind: "fms",
-            message: `FMS index records ${entry.layer}.`,
-            uri: portablePath(project.root, moduleIndexPath),
-            line: entry.line,
-          }],
-          suggestedActions: ["Resolve the layer decision through architecture review, then update both declarations consistently."],
-        }));
-      }
-    }
-
-    for (const entry of parsedIndex.entries) {
-      if (declaredById.has(entry.id)) continue;
-      findings.push(finding({
-        code: "MSSP_DRIFT_004",
-        severity: "warning",
-        status: "drift",
-        category: "module-index",
-        message: `FMS module index references an undeclared module: ${entry.id}.`,
-        moduleId: entry.id,
-        path: portablePath(project.root, moduleIndexPath),
-        declared: [],
-        observed: [{
-          kind: "fms",
-          message: `${entry.id} is indexed as ${entry.layer}.`,
-          uri: portablePath(project.root, moduleIndexPath),
-          line: entry.line,
-        }],
-        suggestedActions: ["Declare the module with a manifest or remove the stale FMS index row."],
-      }));
-    }
-  }
-
+  const canonicalFmsDocumentsFound = addMissingFmsDocuments(project, findings);
+  const parsedIndex = compareModuleIndex(project, findings);
   const inventory = collectSourceInventory(project, maxFiles);
+
   if (inventory.truncated) {
-    findings.push(finding({
+    findings.push({
       code: "MSSP_DRIFT_009",
       severity: "warning",
       status: "indeterminate",
@@ -459,114 +549,24 @@ export function buildArchitectureDriftReport(
       declared: [],
       observed: [{
         kind: "scan",
-        message: "The analyzer stopped before examining every file under configured MSSP layers.",
+        message: "Not every file under configured MSSP layers was examined.",
         data: { maxFiles, examinedFiles: inventory.examinedFiles },
       }],
-      suggestedActions: ["Rerun mssp drift with a higher --max-files value before approving architecture consistency."],
-    }));
+      suggestedActions: ["Rerun mssp drift with a higher --max-files value."],
+    });
   }
 
-  for (const layer of ["FMS", "SCL"] as const) {
-    const paths = inventory.sourceFiles
-      .filter((source) => source.layer === layer)
-      .map((source) => source.path);
-    if (!paths.length) continue;
-    findings.push(finding({
-      code: "MSSP_DRIFT_010",
-      severity: "error",
-      status: "drift",
-      category: "layer-boundary",
-      message: `${layer} is declarative metadata but contains executable source.`,
-      layer,
-      path: project.manifest.layers[layer],
-      declared: [{
-        kind: "declaration",
-        message: `${layer} is declared as a metadata/governance layer rather than an executable module layer.`,
-        uri: portablePath(project.root, project.manifestFile),
-      }],
-      observed: sourceEvidence(paths, paths.length),
-      suggestedActions: [`Move executable behavior out of ${layer} and into an explicitly declared executable module.`],
-    }));
-  }
-
-  const executableLayers = new Set<MsspLayer>(["SMS", "TMS", "DMS", "ROUTER", "RUNTIME"]);
-  const unownedByLayer = new Map<MsspLayer, string[]>();
-  const ambiguousByLayer = new Map<MsspLayer, string[]>();
-
-  for (const source of inventory.sourceFiles) {
-    if (!executableLayers.has(source.layer)) continue;
-    const owners = project.modules.filter((module) =>
-      module.manifest.layer === source.layer && pathInside(module.directory, source.absolute)
-    );
-    if (owners.length === 0) {
-      const values = unownedByLayer.get(source.layer) ?? [];
-      values.push(source.path);
-      unownedByLayer.set(source.layer, values);
-    } else if (owners.length > 1) {
-      const values = ambiguousByLayer.get(source.layer) ?? [];
-      values.push(source.path);
-      ambiguousByLayer.set(source.layer, values);
-    }
-  }
-
-  for (const layer of [...unownedByLayer.keys()].sort()) {
-    const paths = unownedByLayer.get(layer) ?? [];
-    findings.push(finding({
-      code: "MSSP_DRIFT_007",
-      severity: "warning",
-      status: "drift",
-      category: "source-ownership",
-      message: `${paths.length} executable source file(s) under ${layer} are outside every declared ${layer} module boundary.`,
-      layer,
-      path: project.manifest.layers[layer],
-      declared: project.modules
-        .filter((module) => module.manifest.layer === layer)
-        .sort((a, b) => a.manifest.id.localeCompare(b.manifest.id))
-        .map((module) => ({
-          kind: "declaration" as const,
-          message: `${module.manifest.id} owns the boundary rooted at ${portablePath(project.root, module.directory)}.`,
-          uri: portablePath(project.root, module.file),
-        })),
-      observed: sourceEvidence(paths, paths.length),
-      suggestedActions: [
-        "Move the source into an existing declared module boundary, or complete governed candidate promotion and register a new module.",
-      ],
-    }));
-  }
-
-  for (const layer of [...ambiguousByLayer.keys()].sort()) {
-    const paths = ambiguousByLayer.get(layer) ?? [];
-    findings.push(finding({
-      code: "MSSP_DRIFT_008",
-      severity: "warning",
-      status: "drift",
-      category: "source-ownership",
-      message: `${paths.length} executable source file(s) under ${layer} are covered by overlapping module boundaries.`,
-      layer,
-      path: project.manifest.layers[layer],
-      declared: project.modules
-        .filter((module) => module.manifest.layer === layer)
-        .sort((a, b) => a.manifest.id.localeCompare(b.manifest.id))
-        .map((module) => ({
-          kind: "declaration" as const,
-          message: `${module.manifest.id} is rooted at ${portablePath(project.root, module.directory)}.`,
-          uri: portablePath(project.root, module.file),
-        })),
-      observed: sourceEvidence(paths, paths.length),
-      suggestedActions: ["Remove nested or overlapping manifest ownership so every source file has one authoritative module boundary."],
-    }));
-  }
-
+  compareSourceOwnership(project, inventory, findings);
   findings.sort((a, b) =>
     `${a.code}\u0000${a.moduleId ?? ""}\u0000${a.path ?? ""}\u0000${a.message}`
       .localeCompare(`${b.code}\u0000${b.moduleId ?? ""}\u0000${b.path ?? ""}\u0000${b.message}`)
   );
 
-  const errors = findings.filter((value) => value.severity === "error").length;
-  const warnings = findings.filter((value) => value.severity === "warning").length;
-  const info = findings.filter((value) => value.severity === "info").length;
-  const drift = findings.filter((value) => value.status === "drift").length;
-  const indeterminate = findings.filter((value) => value.status === "indeterminate").length;
+  const errors = findings.filter((finding) => finding.severity === "error").length;
+  const warnings = findings.filter((finding) => finding.severity === "warning").length;
+  const info = findings.filter((finding) => finding.severity === "info").length;
+  const drift = findings.filter((finding) => finding.status === "drift").length;
+  const indeterminate = findings.filter((finding) => finding.status === "indeterminate").length;
   const status: ArchitectureDriftReportStatus = drift > 0
     ? "drift-detected"
     : indeterminate > 0
@@ -605,7 +605,9 @@ export function buildArchitectureDriftReport(
       moduleIndexParsed: parsedIndex.parsed,
       declaredModules: project.modules.length,
       indexedModules: parsedIndex.entries.length,
-      executableLayerSourceFiles: inventory.sourceFiles.filter((source) => executableLayers.has(source.layer)).length,
+      executableLayerSourceFiles: inventory.sourceFiles.filter((source) =>
+        EXECUTABLE_LAYERS.has(source.layer)
+      ).length,
     },
     summary: {
       status,
