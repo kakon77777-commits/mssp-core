@@ -50,6 +50,9 @@ export const validatePromotionReviewSchema: ValidateFunction = ajv.compile(
 export const validateArchitectureDriftSchema: ValidateFunction = ajv.compile(
   readSchema("architecture-drift.schema.json"),
 );
+export const validateGitDiffImpactSchema: ValidateFunction = ajv.compile(
+  readSchema("git-diff-impact.schema.json"),
+);
 
 export function formatSchemaErrors(errors: ErrorObject[] | null | undefined): string[] {
   return (errors ?? []).map((error) => {
