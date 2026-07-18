@@ -2,9 +2,9 @@
 
 [English](README.md)
 
-**MSSP（Mother-Set and Subset Paradigm，母集與子集範式）**是一套語言無關的架構方法，用來讓複雜系統可以被理解、導航、驗證、治理與演化。
+**MSSP（Mother-Set and Subset Paradigm，母集與子集範式）**是一套語言無關的架構方法，用來讓複雜系統可以被理解、導航、測試、治理、觀測與演化。
 
-MSSP 不是另一個應用框架，也不是資料夾命名規則。它要求系統把本體聲明、穩定能力、可選子集、變更權限、診斷、路由、執行、相容性與變更影響寫成機器可讀的架構契約。
+MSSP 不是應用框架，也不是資料夾命名規則。它把系統本體、穩定能力、可選子集、變更權限、診斷、路由、執行、相容性與變更影響表示為機器可讀契約。
 
 ## 核心模型
 
@@ -12,258 +12,110 @@ MSSP 不是另一個應用框架，也不是資料夾命名規則。它要求系
 MSSP = (FMS, SCL, SMS, TMS, DMS, Router, Runtime)
 ```
 
-| 層級 | 回答的問題 | 核心不變條件 |
+| 層級 | 責任 | 核心不變條件 |
 |---|---|---|
-| FMS | 這個系統是什麼？ | 保存本體與架構聲明，禁止可執行原始碼。 |
-| SCL | 系統允許如何改變？ | 以機器可讀契約描述權限、批准與禁止事項。 |
-| SMS | 哪些能力必須保持穩定？ | 不得依賴可選 TMS。 |
-| TMS | 哪些能力可以載入、替換或移除？ | 僅依賴已聲明 SMS，並可接受孤島測試。 |
-| DMS | 系統如何被觀測與解釋？ | 產生證據，但不擁有業務狀態。 |
-| Router | 何時選擇哪個可選子集？ | 依契約選擇，不把 TMS 偷渡為核心依賴。 |
-| Runtime | 已批准的計畫如何執行？ | 只執行正式聲明的模組並輸出可觀測證據。 |
+| FMS | 系統本體與 Canonical 架構紀錄 | 僅允許聲明，不得放置可執行原始碼。 |
+| SCL | 變更權限、批准與禁止事項 | 治理誰可以在何種條件下改變什麼。 |
+| SMS | 系統閉合所必須維持的穩定能力 | 不得依賴可選 TMS。 |
+| TMS | 可選、可替換或可移除能力 | 僅依賴正式聲明的 SMS，並保持可孤島測試。 |
+| DMS | 觀測、診斷與解釋 | 產生證據，但不擁有業務狀態。 |
+| Router | 依契約選擇可選子集 | 不把 TMS 偷渡成核心依賴。 |
+| Runtime | 執行已批准計畫 | 只執行正式聲明模組並輸出可觀測證據。 |
 
 MSSP-VT 透過每個模組的 `version`、`compatibility` 與 `changeImpact` 進入架構契約。
 
 ## 已實作命令
 
-- `mssp init`：建立可直接採用的專案骨架。
-- `mssp adapters`：列出機器可讀的 Adapter Descriptor。
-- `mssp adapt eml`：把版本化 EML semantic export 轉成 Intermediate Model。
-- `mssp adapt python`：把版本化 Python semantic export 轉成 Intermediate Model；也接受 `py`。
-- `mssp lint`：檢查 Schema、層級位置、依賴方向、FMS 純度、循環、入口與 MSSP-VT 關聯。
-- `mssp island`：檢查 TMS 孤島測試義務。
-- `mssp model`：輸出可重現、語言無關的 Intermediate Model。
-- `mssp scan`：發現倉庫結構與靜態依賴證據，不分配 MSSP 層級。
-- `mssp classify`：輸出有證據、必須審查的層級假說，不自動升格。
-- `mssp review-candidate`：記錄核准、拒絕或延後決策。
-- `mssp promote-candidate`：在契約補完及獨立批准後輸出 module manifest。
-- `mssp drift`：比較 Canonical FMS、manifest 與有界原始碼所有權。
-- `mssp impact`：把明確 Git 比較映射為直接與 MSSP-VT 傳播影響。
-- `mssp viz`：輸出唯讀 Visualization Model 或自包含互動式 HTML 架構圖。
-- `mssp graph`：從 Intermediate Model 產生 Mermaid 或 JSON 架構圖。
-- `mssp explain`：輸出簡潔架構清單。
+```text
+mssp init
+mssp lint
+mssp explain
+mssp graph
+mssp island
+mssp model
+mssp scan
+mssp classify
+mssp review-candidate
+mssp promote-candidate
+mssp drift
+mssp impact
+mssp viz
+mssp adapters
+mssp adapt
+```
 
-Scanner 不宣告架構。Classifier 不批准候選。審查核准不等於契約完成。Manifest 輸出不等於模組註冊。Drift 與 Impact 報告都不能修改或批准自己所描述的架構。Visualization 不會替畫面中的候選分類或升格。Adapter 只轉換明確 Export，不會執行來源系統，也不會把未聲明實體自動升格。
+核心邊界：
 
-## 五分鐘開始
+```text
+Scanner 證據       ≠ 架構聲明
+Classification     ≠ Promotion
+Review Approval    ≠ Completed Contract
+Manifest Emission  ≠ Project Registration
+Drift Consistency  ≠ Semantic Equivalence
+Impact Detected    ≠ Incompatibility
+Visualization      ≠ Architecture Authority
+Adapter Metadata   ≠ Module Declaration 或 Permission Grant
+```
+
+## 快速開始
 
 ```bash
 npm install
 npm run build
 
-node dist/cli.js adapters --json --out /tmp/adapter-descriptors.json
-node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
-  --revision HEAD \
-  --out /tmp/eml-intermediate-model.json
-node dist/cli.js adapt python examples/python-adapter/semantic-export.json \
-  --revision HEAD \
-  --out /tmp/python-intermediate-model.json
-node dist/cli.js init /tmp/my-mssp-project
-node dist/cli.js lint /tmp/my-mssp-project
-node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
-node dist/cli.js scan . --revision HEAD --out /tmp/repository-scan.json
-node dist/cli.js classify . --revision HEAD --out /tmp/classification-suggestions.json
-node dist/cli.js review-candidate . \
-  --candidate candidate.repository \
-  --decision defer \
-  --reviewer architecture-reviewer \
-  --rationale "聚合邊界仍需要系統層級判斷。" \
-  --out /tmp/promotion-review.json
-node dist/cli.js drift /tmp/my-mssp-project \
-  --revision HEAD \
-  --out /tmp/architecture-drift.json
-node dist/cli.js impact /tmp/my-mssp-project \
-  --base origin/main \
-  --head HEAD \
-  --revision HEAD \
-  --out /tmp/git-diff-impact.json
-node dist/cli.js viz /tmp/my-mssp-project \
-  --revision HEAD \
-  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
-  --out /tmp/architecture.html
-node dist/cli.js island /tmp/my-mssp-project
-node dist/cli.js graph /tmp/my-mssp-project \
-  --format mermaid \
-  --out /tmp/architecture.mmd
+node dist/cli.js lint examples/hello-mssp
+node dist/cli.js model examples/hello-mssp --revision HEAD --out intermediate-model.json
+node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.json
+node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
+node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
+node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
+node dist/cli.js viz examples/hello-mssp --format html --revision HEAD --out architecture.html
+node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
 
-倉庫開發期間：
+## Intermediate Model 流程
 
-```bash
-npm run mssp -- adapters --json
-npm run mssp -- adapt eml examples/eml-adapter/semantic-export.json --revision HEAD
-npm run mssp -- adapt python examples/python-adapter/semantic-export.json --revision HEAD
-npm run mssp -- lint examples/hello-mssp
-npm run mssp -- model examples/hello-mssp --revision HEAD
-npm run mssp -- scan . --revision HEAD --max-files 10000
-npm run mssp -- classify . --revision HEAD --max-files 10000
-npm run mssp -- drift examples/hello-mssp --revision HEAD --max-files 10000
-npm run mssp -- impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD
-npm run mssp -- viz examples/hello-mssp --format html --revision HEAD --out architecture.html
-npm run mssp -- island examples/hello-mssp
-npm run mssp -- graph examples/hello-mssp --format mermaid
+```text
+MSSP YAML / Repository Scanner / External Semantic Export
+                          ↓
+               MSSP Intermediate Model v0.2
+                          ↓
+Validator / Graph / Visualization / IDE / Agent / Drift / Impact
 ```
 
-## 交換與治理規格
+模型明確區分：
 
-- [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)
-- [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
-- [MSSP Repository Scanner v0.2](spec/MSSP-REPOSITORY-SCANNER-v0.2.md)
-- [MSSP Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)
-- [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)
-- [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
-- [MSSP Git Diff Impact Analysis v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
-- [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
-- [MSSP Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
-- [MSSP EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
-- [MSSP Python Adapter v0.3](spec/MSSP-PYTHON-ADAPTER-v0.3.md)
+```text
+正式 Modules       與尚未分類的 Candidates
+Normative Relations 與 Scanner Discovery Evidence
+Portable Provenance 與本機環境狀態
+Source Representation 與 Architecture Approval
+```
 
-診斷 JSON 消費者應讀取 `diagnostics[].code`；v0.1 內部代碼保留在 `diagnostics[].legacyCode`。
+## 倉庫智慧
 
-## 倉庫智慧流程
+目前 v0.2 流程：
 
 ```text
 既有倉庫
-  → 可重現 Scanner 證據
-  → 尚未分類的 candidates
-  → Advisory classification suggestions
-  → 明確審查決策
-  → 受阻塞契約草稿
+  → 可重現、有界掃描
+  → 尚未分類的 Candidates
+  → Advisory Classification Suggestions
+  → 明確 Review Decision
+  → 刻意不完整的 Contract Draft
   → 契約補完
   → 獨立最終批准
-  → Manifest 輸出
-  → 另外完成專案註冊
+  → Manifest Emission
+  → 另外完成 Project Registration
 ```
 
-目前 Scanner 可辨識常見 Node.js、Python、Rust、Go、Godot、JVM 與 .NET 標記；npm、pnpm 與 Cargo Workspace；根目錄及巢狀 `.gitignore`；生成檔慣例；以及 JavaScript／TypeScript、Python、Go、Rust、GDScript 靜態引用。
+Scanner 可辨識常見 Node.js、Python、Rust、Go、Godot、JVM 與 .NET 標記；npm、pnpm 與 Cargo Workspace；巢狀 `.gitignore` 證據；生成檔慣例；以及 JavaScript／TypeScript、Python、Go、Rust、GDScript 的靜態引用。
 
-靜態依賴只保存在 `discovery.dependencies`，不會自行升格為正式 runtime `relations`。
+靜態引用保留在 `discovery.dependencies`，不會自行成為正式 Runtime Relation。
 
-Classifier 可建議 `FMS`、`SCL`、`SMS`、`TMS`、`DMS`、`ROUTER`、`RUNTIME` 或 `UNDETERMINED`，但永遠保留：
+## 視覺化
 
-```json
-{
-  "mode": "advisory",
-  "autoPromotion": false,
-  "status": "review-required"
-}
-```
-
-## Candidate 審查與升格
-
-```text
-Suggestion ≠ Review Decision
-Review Approval ≠ Completed Contract
-Completed Contract ≠ Final Approval
-Manifest Emission ≠ Project Registration
-```
-
-已核准候選會先產生刻意不完整的契約草稿。只要仍有 TODO、未解除條件、被截斷的掃描、缺少入口、TMS activation、failure behavior、validation 或 tests，升格就會被阻擋。
-
-最終批准者必須不同於分類審查者。輸出的 manifest 會在 `metadata.promotion` 保存審查與批准來源。升格不會修改 `mssp.yaml`，也不會建立 runtime relations。
-
-中文指南：[Candidate 審查與升格](docs/candidate-promotion.zh-TW.md)。
-
-## 架構漂移報告
-
-```text
-Canonical FMS records
-        ↕
-Module manifests
-        ↕
-Configured layer source ownership
-```
-
-執行：
-
-```bash
-node dist/cli.js drift examples/hello-mssp \
-  --revision HEAD \
-  --max-files 10000 \
-  --out architecture-drift.json
-```
-
-報告檢查 Canonical FMS 文件是否存在、保守解析 `FMS/01_MODULE_INDEX.md` 的明確 `ID` 與 `Layer` 表格、比較索引與 module manifests，並驗證設定層級下的可執行原始碼是否具有唯一 owner。
-
-每份報告固定保留：
-
-```json
-{
-  "analysis": {
-    "mode": "static-conservative",
-    "semanticEquivalence": false,
-    "autoMutation": false
-  }
-}
-```
-
-`consistent` 只代表結構一致。自然語言語義、執行行為、部署拓撲與歷史等價性都沒有被證明。
-
-中文指南：[架構漂移](docs/architecture-drift.zh-TW.md)。
-
-## Git Diff Impact 分析
-
-```text
-Git changed paths
-      ↓
-直接 Module ownership
-      ↓
-已聲明 MSSP-VT 傳播
-      ↓
-Review obligations
-```
-
-執行：
-
-```bash
-node dist/cli.js impact examples/hello-mssp \
-  --base origin/main \
-  --head HEAD \
-  --revision HEAD \
-  --out git-diff-impact.json
-```
-
-分析器使用直接的 Git name-status 證據與 rename detection，並區分 module manifest、已聲明 entry 與其他 module-owned paths。新增、刪除與跨 MSSP 專案邊界的重新命名，會保留明確的 `into-project` 或 `out-of-project` transition。
-
-影響依目前正式聲明傳播：
-
-```text
-A.changeImpact.affects contains B
-B.changeImpact.affectedBy contains A
-B.requires.modules contains A
-B.compatibility.modules contains A
-```
-
-報告可以要求 `fms`、`scl`、`module-contract`、`version`、`compatibility`、`tests` 與 `island` 審查。
-
-每份報告固定保留：
-
-```json
-{
-  "analysis": {
-    "mode": "static-conservative",
-    "semanticCompatibility": false,
-    "autoVersionBump": false,
-    "autoMutation": false
-  }
-}
-```
-
-`impact-detected` 表示審查範圍已知，不代表變更不相容。`indeterminate` 表示 ownership、關係目標、路徑轉移或生成來源仍不完整。分析器不會自行選擇 patch、minor 或 major 版本。
-
-中文指南：[Git Diff Impact](docs/git-diff-impact.zh-TW.md)。
-
-## 互動式架構視覺化
-
-```text
-Intermediate Model
-       ↓ 可重現唯讀投影
-Visualization Model
-       ↓ 自包含 renderer
-可搜尋的分層架構圖
-```
-
-執行：
+`mssp viz` 可以輸出可重現 JSON，或單一自包含互動式 HTML。
 
 ```bash
 node dist/cli.js viz examples/hello-mssp \
@@ -273,42 +125,57 @@ node dist/cli.js viz examples/hello-mssp \
   --out architecture.html
 ```
 
-HTML 將 CSS、JavaScript 與資料放在單一檔案內，不載入 CDN、外部字型、分析服務或 runtime library。畫面支援層級篩選、搜尋、節點詳細資料、關係線與選配的原始碼連結。
+HTML 內含自己的 CSS、JavaScript 與 Model Payload，不載入 CDN、外部字型、分析服務或 Runtime Library。畫面支援搜尋、Layer Filter、Node Detail、Relation Drawing 與選擇性 Source Navigation。
 
-Visualization Model 明確區分：
-
-```text
-module     → 已聲明 MSSP layer
-candidate  → UNCLASSIFIED
-reference  → UNRESOLVED
-```
-
-每份模型固定保留：
+Visualization 固定保持：
 
 ```json
 {
-  "invariants": {
-    "readOnly": true,
-    "autoMutation": false
-  }
+  "readOnly": true,
+  "autoMutation": false
 }
 ```
 
-看見 candidate 不等於已批准；看見 relation 也不等於已執行或已證明相容。
+## Adapter 互通
 
-中文指南：[Visualization](docs/visualization.zh-TW.md)。
-
-## Adapter 互通：EML 與 Python
+MSSP Core 消費版本化 Semantic Export，而不是把來源 Runtime、Compiler、Editor、Package Manager 或 Agent Framework 引進 Core。
 
 ```text
-外部 Parser／Editor／Compiler／Packaging Tool
-                         ↓ 版本化 Semantic Export
-                    MSSP Adapter Registry
-                         ↓ 可重現轉換
-                  MSSP Intermediate Model
+來源生態的 Exporter
+        ↓ versioned JSON
+ MSSP Adapter Registry
+        ↓ deterministic translation
+ Intermediate Model v0.2
 ```
 
-每個合規 Adapter 都要公開機器可讀 Descriptor，並固定保留：
+列出 Descriptor：
+
+```bash
+node dist/cli.js adapters
+node dist/cli.js adapters --json --out adapter-descriptors.json
+```
+
+目前 Reference Adapter：
+
+| Adapter ID | CLI Alias | 輸入 |
+|---|---|---|
+| `agent-skill-mssp-export` | `agent-skill`, `skill` | Agent／Skill Semantic Export v0.3 |
+| `eml-mssp-export` | `eml` | EML Semantic Export v0.3 |
+| `godot-mssp-export` | `godot`, `gd` | Godot Semantic Export v0.3 |
+| `python-mssp-export` | `python`, `py` | Python Semantic Export v0.3 |
+| `rust-mssp-export` | `rust`, `rs` | Rust Semantic Export v0.3 |
+
+執行範例：
+
+```bash
+node dist/cli.js adapt agent-skill examples/agent-skill-adapter/semantic-export.json --revision HEAD --out agent-skill-intermediate-model.json
+node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision HEAD --out eml-intermediate-model.json
+node dist/cli.js adapt godot examples/godot-adapter/semantic-export.json --revision HEAD --out godot-intermediate-model.json
+node dist/cli.js adapt python examples/python-adapter/semantic-export.json --revision HEAD --out python-intermediate-model.json
+node dist/cli.js adapt rust examples/rust-adapter/semantic-export.json --revision HEAD --out rust-intermediate-model.json
+```
+
+所有 Reference Adapter 固定維持：
 
 ```json
 {
@@ -321,124 +188,78 @@ reference  → UNRESOLVED
 }
 ```
 
-目前 Registry：
+只有完整且明確的 `declaration` 能映射成 Intermediate Module。沒有 Declaration 的來源實體，即使來源生態稱他為 Module、Package、Crate、Scene、Autoload、Plugin、Agent、Skill、Tool、Workflow 或 Service，也只能保持 `unclassified` Candidate。
+
+正式 Relation 只能來自：
 
 ```text
-eml-mssp-export       aliases: eml
-python-mssp-export    aliases: python, py
+declaration.requirements.modules     → requires
+declaration.changeImpact.affects     → affects
+declaration.changeImpact.affectedBy  → affected-by
 ```
 
-EML Adapter 接受 `eml-mssp-export` v0.3 JSON：
+Import、Cargo Dependency、Entry Point、Scene Inheritance、Signal、Tool Name、Prompt、Trigger、Permission、Handoff、Resource Access 與名稱相似度，都只能保留為 Metadata 或非規範性證據。
 
-```bash
-node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
-  --revision HEAD \
-  --out eml-intermediate-model.json
-```
-
-它不解析原始 `.eml`、不執行 EML、不解析 import，也不修改專案。完整且明確的 EML `declaration` 會映射為 module representation；缺少 declaration 的 symbol，即使 EML `symbolKind` 是 `module`，仍然保持為 `unclassified` candidate。
-
-Python Adapter 接受 `python-mssp-export` v0.3 JSON：
-
-```bash
-node dist/cli.js adapt python examples/python-adapter/semantic-export.json \
-  --revision HEAD \
-  --out python-intermediate-model.json
-```
-
-它會保留 distribution metadata、Python 版本要求、Build Backend 身分、qualified name、import path 與 entry point，但只當成來源 metadata。它不 import 或執行 Python、不掃描 virtual environment、不呼叫 package manager 或 Build Backend、不解析 import，也不修改專案。
-
-Python package、plugin、command、service、import path 或 entry point 都不是架構授權。只有完整且明確的 `declaration` 才會映射成 Intermediate Module；否則仍是 `unclassified` candidate。
-
-正式 `requires`、`affects` 與 `affected-by` 只從完整 declaration 產生，不會從 import、套件依賴、entry point、名稱或路徑鄰近性推斷。
-
-共用 Declarative Adapter Builder 負責正規化 explicit declaration、candidate、relation、source provenance 與穩定排序；各生態 Adapter 仍保留獨立輸入 Schema 與 metadata mapping。
-
-Adapter 輸出只代表來源已明確聲明，不代表已通過 SCL 批准、相容性驗證、專案註冊、runtime loading 或部署審查。
-
-中文指南：[Adapter、EML 與 Python](docs/adapters.zh-TW.md)。
-
-## Module contract 範例
-
-```yaml
-schemaVersion: "0.1"
-id: plugin.export-pdf
-name: PDF Export
-version: "0.1.0"
-layer: TMS
-purpose: 將已驗證文件輸出為 PDF。
-entry: index.ts
-activateWhen:
-  - request.output == pdf
-inputs: [validated-document]
-outputs: [pdf-file]
-requires:
-  modules: [core.document-model]
-  tools: []
-  data: []
-permissions:
-  may: [read-document, write-output]
-  mayNot: [network, overwrite-source]
-riskLevel: L1
-failureModes: [invalid-document, output-write-failure]
-validation:
-  - output file exists
-  - source document is unchanged
-tests:
-  - exports a minimal document
-  - rejects malformed input safely
-compatibility:
-  mssp: ">=0.1 <0.2"
-  modules:
-    core.document-model: ">=1 <2"
-changeImpact:
-  affects: []
-  affectedBy: [core.document-model]
-maintainer: example-team
-```
-
-## Intermediate Model 邊界
+Agent Skill 特別遵守：
 
 ```text
-MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
-                              ↓
-                  MSSP Intermediate Model
-                              ↓
-Validator / Graph / Viz / IDE / Agent / Drift / Impact Analysis
+Required Permission ≠ Permission Grant
+Tool Name           ≠ Runtime Dependency
+Trigger             ≠ Activation Approval
+Handoff             ≠ Normative Relation
+Memory Policy       ≠ SCL Approval
 ```
 
-中介模型區分已批准的 `modules`、尚未分類的 `candidates`，以及正式 `relations` 與 Scanner 的 `discovery.dependencies`。
+## 規範文件
 
-## 與 EML 的關係
+### v0.2 倉庫智慧
+
+- [Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md)
+- [Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md)
+- [Repository Scanner v0.2](spec/MSSP-REPOSITORY-SCANNER-v0.2.md)
+- [Classification Suggestions v0.2](spec/MSSP-CLASSIFICATION-SUGGESTIONS-v0.2.md)
+- [Candidate Review and Promotion v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)
+- [Architecture Drift v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
+- [Git Diff Impact v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
+
+### v0.3 視覺化與 Adapter
+
+- [Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
+- [Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
+- [EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
+- [Python Adapter v0.3](spec/MSSP-PYTHON-ADAPTER-v0.3.md)
+- [Rust Adapter v0.3](spec/MSSP-RUST-ADAPTER-v0.3.md)
+- [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
+- [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
+
+更多繁中說明位於 [`docs/`](docs/)，包括[綜合 Adapter 指南](docs/adapters.zh-TW.md)、[Godot Adapter 指南](docs/godot-adapter.zh-TW.md)與 [Agent Skill Adapter 指南](docs/agent-skill-adapter.zh-TW.md)。
+
+## 倉庫地圖
 
 ```text
-MSSP = 架構組織、能力定位、子集治理
-EML  = 語義表達、壓縮、可執行語言工具鏈
-```
-
-`eml-mssp-export` reference adapter 已可把明確的 EML semantic export 轉換成 Intermediate Model，而不匯入 EML parser、runtime、editor 或 emitters。未來 EML 工具鏈可直接產生該 Export；原始 EML 解析仍不屬於 MSSP Core。
-
-## 倉庫結構
-
-```text
-schemas/                    正式 Schema
-src/                        TypeScript Core 與 CLI
-examples/hello-mssp/        完整 MSSP 參考案例
-examples/eml-adapter/       EML semantic export 參考 fixture
-examples/python-adapter/    Python semantic export 參考 fixture
-spec/                       規範與互通協議
-docs/                       採用、協議、Roadmap 與研究指南
-.github/                     CI 與架構審查流程
+schemas/                         規範 JSON Schema
+src/                             TypeScript Reference Implementation 與 CLI
+examples/hello-mssp/             完整 MSSP Adoption Fixture
+examples/agent-skill-adapter/    Agent Skill Semantic Export Fixture
+examples/eml-adapter/            EML Semantic Export Fixture
+examples/godot-adapter/          Godot Semantic Export Fixture
+examples/python-adapter/         Python Semantic Export Fixture
+examples/rust-adapter/           Rust Semantic Export Fixture
+spec/                            Normative Specifications
+docs/                            Adoption、Roadmap 與研究指南
+.github/                         CI 與 Architecture Review Workflow
 ```
 
 ## 目前狀態
 
-`v0.1.0` 是架構契約 MVP。v0.2 Repository Intelligence 的主要垂直切片已實作：Diagnostic Protocol、Intermediate Model、Scanner、靜態依賴證據、Advisory Classification、受治理升格、結構漂移，以及 Git Diff Impact Analysis。
+- v0.1 Architecture Contract MVP：完成。
+- v0.2 主要 Repository Intelligence Vertical Slices：完成。
+- v0.3 Visualization Foundation 與五個 Reference Adapter Vertical Slices：完成。
+- Multi-view Layout 與 Large-graph Performance Refinement：尚未完成。
+- Compiler-grade AST、完整 Alias／Build Graph、完整 Git-ignore 等價、Generated-source Provenance、Runtime DMS Transport 與 Automatic Semantic-version Selection 仍在目前實作範圍之外。
 
-v0.3 Visualization Foundation、Adapter Contract、可重現 Adapter Registry、共用 Declarative Adapter Builder、EML reference adapter 與 Python reference adapter 已完成。兩個 Adapter 都具備機器可讀 Descriptor 與 Input Schema、Conformance Evaluation、公開 API、CLI、參考 Fixture、測試、規格與 CI Artifact。
+參閱 [Roadmap](docs/roadmap.md) 與 [Validation Report](VALIDATION-REPORT.md)。
 
-Rust、Godot 與 Agent Skill adapters 尚未實作。編譯器等級 AST 依賴抽取、完整語言 alias 解析、完全等價的 Git ignore 行為、生成來源追蹤、patch hunk／symbol-level impact，以及自動 Semantic Version 選擇，仍不屬於目前 Reference Implementation。
+## License
 
-## 授權
-
-Apache-2.0。Copyright 2026 Neo.K / EVEMISSLAB。
+Apache-2.0. Copyright 2026 Neo.K / EVEMISSLAB.
