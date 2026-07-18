@@ -24,12 +24,13 @@ MSSP = (FMS, SCL, SMS, TMS, DMS, Router, Runtime)
 
 MSSP-VT is represented in every module manifest through `version`, `compatibility`, and `changeImpact`.
 
-## MVP capabilities
+## MVP and v0.2 groundwork
 
 - `mssp init`: scaffold an adoption-ready MSSP project.
 - `mssp lint`: validate YAML schemas, layer placement, dependency direction, FMS purity, cycles, entries, and MSSP-VT references.
 - `mssp island`: enforce the TMS island-test rule.
-- `mssp model`: export the deterministic, language-neutral MSSP Intermediate Model.
+- `mssp model`: export the deterministic, language-neutral MSSP Intermediate Model from manifests.
+- `mssp scan`: scan an existing repository and emit evidence-backed, unclassified structural candidates.
 - `mssp graph`: generate a Mermaid or JSON architecture graph from the Intermediate Model.
 - `mssp explain`: print a concise inventory for humans and agents.
 - MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
@@ -38,7 +39,7 @@ MSSP-VT is represented in every module manifest through `version`, `compatibilit
 - GitHub Actions and PR review templates.
 - A complete reference project in `examples/hello-mssp`.
 
-This MVP deliberately does **not** yet include AI auto-classification, a visual web editor, runtime instrumentation, AISMBI memory-bound inference, or an EML adapter implementation. Their interfaces are reserved in the roadmap.
+The scanner foundation deliberately does **not** auto-classify candidates as SMS or TMS. It discovers structural evidence first and leaves architecture classification to a later governed review step.
 
 ## Five-minute quick start
 
@@ -49,6 +50,7 @@ node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project --json
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
+node dist/cli.js scan . --revision HEAD --out /tmp/repository-scan.json
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project --format mermaid --out /tmp/architecture.mmd
 ```
@@ -59,6 +61,7 @@ During repository development:
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- lint examples/hello-mssp --json
 npm run mssp -- model examples/hello-mssp --revision HEAD
+npm run mssp -- scan . --revision HEAD --max-files 10000
 npm run mssp -- explain examples/hello-mssp
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
@@ -66,18 +69,49 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 
 The JSON diagnostic commands emit the [MSSP Diagnostic Protocol v0.2](spec/MSSP-DIAGNOSTIC-PROTOCOL-v0.2.md). Consumers should use `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
-The `model` command emits the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, repository scanners, language adapters, IDEs, agents, graphs, and future impact analysis.
+The `model` and `scan` commands emit the [MSSP Intermediate Model v0.2](spec/MSSP-INTERMEDIATE-MODEL-v0.2.md), the common exchange representation for manifests, repository scanners, language adapters, IDEs, agents, graphs, and future impact analysis.
+
+## Repository Scanner foundation
+
+```text
+Repository
+    ↓ deterministic inventory
+Markers and structural conventions
+    ↓ evidence-backed discovery
+Unclassified candidates
+    ↓ human or governed Agent review
+Declared MSSP modules
+```
+
+The scanner currently detects common Node.js, Python, Rust, Go, Godot, JVM, and .NET project markers. It also identifies conventional source roots and multi-module container children.
+
+A candidate records:
+
+- repository-relative path;
+- boundary kind and boundary confidence;
+- file and source-file counts;
+- observed languages;
+- source references and evidence;
+- `status: unclassified`.
+
+`boundaryConfidence` means “this path is probably a structural boundary.” It does not mean “this path is probably TMS.”
+
+The default scan bound is 50,000 files. Use `--max-files` to lower it. A bounded scan that reaches the limit sets `discovery.truncated` to `true`.
+
+Full scanner specification: [`spec/MSSP-REPOSITORY-SCANNER-v0.2.md`](spec/MSSP-REPOSITORY-SCANNER-v0.2.md).
 
 ## Adopt MSSP in an existing repository
 
-1. Add `mssp.yaml` at the repository root.
-2. Create `FMS/00_SYSTEM_NARRATIVE.md`, `FMS/01_MODULE_INDEX.md`, and `FMS/02_ARCHITECTURE_NOTES.md`.
-3. Declare stable capabilities as SMS manifests.
-4. Declare optional capabilities as TMS manifests with activation, permissions, failure modes, validation, and representative tests.
-5. Add SCL change contracts and DMS diagnostic contracts.
-6. Run `mssp lint` and `mssp island` in CI.
-7. Require an FMS review whenever a pull request changes system identity, module boundaries, or dependency direction.
-8. Update MSSP-VT impact relations whenever compatibility changes.
+1. Run `mssp scan` to create a structural evidence inventory.
+2. Review candidates instead of accepting automatic layer assignments.
+3. Add `mssp.yaml` at the repository root.
+4. Create `FMS/00_SYSTEM_NARRATIVE.md`, `FMS/01_MODULE_INDEX.md`, and `FMS/02_ARCHITECTURE_NOTES.md`.
+5. Declare stable capabilities as SMS manifests.
+6. Declare optional capabilities as TMS manifests with activation, permissions, failure modes, validation, and representative tests.
+7. Add SCL change contracts and DMS diagnostic contracts.
+8. Run `mssp lint` and `mssp island` in CI.
+9. Require an FMS review whenever a pull request changes system identity, module boundaries, or dependency direction.
+10. Update MSSP-VT impact relations whenever compatibility changes.
 
 ## Module contract
 
@@ -120,7 +154,7 @@ maintainer: example-team
 
 ## Intermediate Model boundary
 
-Source-specific adapters produce one normalized model:
+Source-specific producers emit one normalized model:
 
 ```text
 MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
@@ -130,7 +164,7 @@ MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
         Validator / Graph / IDE / Agent / Impact Analysis
 ```
 
-The reference model is deterministic, does not expose host-specific absolute paths, and records source evidence. The graph generator already consumes this model rather than parsing manifests directly.
+The model distinguishes approved `modules` from unclassified `candidates`. The reference output is deterministic, does not expose host-specific absolute paths, and records source evidence. The graph generator consumes declared modules through this model rather than parsing manifest structures directly.
 
 ## Island-test rule
 
@@ -159,7 +193,7 @@ The package name is reserved for publication; before npm publication, run the re
 
 ```text
 schemas/                 Normative schemas for manifests, diagnostics, and the Intermediate Model
-src/                     TypeScript core and CLI
+src/                     TypeScript core, scanner, and CLI
 examples/hello-mssp/     Complete reference adoption
 spec/                    Method and interoperability specifications
 docs/                    Adoption, protocol guides, EML integration, whitepaper, roadmap
@@ -168,7 +202,7 @@ docs/                    Adoption, protocol guides, EML integration, whitepaper,
 
 ## Status
 
-`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress; the Diagnostic Protocol and language-neutral Intermediate Model foundations are implemented. Repository scanning, evidence-backed classification, FMS/code drift analysis, and Git diff impact inference remain open.
+`v0.1.0` is the architecture-contract MVP. v0.2 repository intelligence is in progress. Diagnostic Protocol, Intermediate Model, and the deterministic Repository Scanner foundation are implemented. Dependency-aware boundary refinement, evidence-backed layer classification, candidate promotion, FMS/code drift analysis, and Git diff impact inference remain open.
 
 ## License
 
