@@ -3,64 +3,29 @@
   "title": "MSSP Intermediate Model v0.2",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "kind",
-    "generatedBy",
-    "project",
-    "layers",
-    "modules",
-    "candidates",
-    "relations",
-    "policies"
-  ],
+  "required": ["schemaVersion", "kind", "generatedBy", "project", "layers", "modules", "candidates", "relations", "policies"],
   "properties": {
     "schemaVersion": { "const": "0.2" },
     "kind": { "const": "mssp-intermediate-model" },
     "generatedBy": { "$ref": "#/$defs/generatedBy" },
     "project": { "$ref": "#/$defs/project" },
-    "layers": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/layer" }
-    },
-    "modules": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/module" }
-    },
-    "candidates": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/candidate" }
-    },
-    "relations": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/relation" }
-    },
-    "policies": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/policy" }
-    },
+    "layers": { "type": "array", "items": { "$ref": "#/$defs/layer" } },
+    "modules": { "type": "array", "items": { "$ref": "#/$defs/module" } },
+    "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
+    "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" } },
+    "policies": { "type": "array", "items": { "$ref": "#/$defs/policy" } },
     "discovery": { "$ref": "#/$defs/discovery" }
   },
   "$defs": {
-    "nonEmptyString": {
-      "type": "string",
-      "minLength": 1
-    },
-    "stringArray": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/nonEmptyString" }
-    },
-    "layerId": {
-      "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"]
-    },
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "stringArray": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" } },
+    "layerId": { "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"] },
     "source": {
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "uri"],
       "properties": {
-        "kind": {
-          "enum": ["manifest", "scanner", "adapter", "generated"]
-        },
+        "kind": { "enum": ["manifest", "scanner", "adapter", "generated"] },
         "uri": { "$ref": "#/$defs/nonEmptyString" },
         "format": { "$ref": "#/$defs/nonEmptyString" },
         "adapter": { "$ref": "#/$defs/nonEmptyString" },
@@ -72,23 +37,10 @@
       "additionalProperties": false,
       "required": ["kind", "message"],
       "properties": {
-        "kind": {
-          "enum": [
-            "declaration",
-            "source",
-            "dependency",
-            "policy",
-            "inference",
-            "test",
-            "other"
-          ]
-        },
+        "kind": { "enum": ["declaration", "source", "dependency", "policy", "inference", "test", "other"] },
         "message": { "$ref": "#/$defs/nonEmptyString" },
         "source": { "$ref": "#/$defs/source" },
-        "data": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "data": { "type": "object", "additionalProperties": true }
       }
     },
     "generatedBy": {
@@ -111,10 +63,7 @@
         "version": { "$ref": "#/$defs/nonEmptyString" },
         "description": { "type": "string" },
         "source": { "$ref": "#/$defs/source" },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "metadata": { "type": "object", "additionalProperties": true }
       }
     },
     "layer": {
@@ -152,10 +101,7 @@
       "required": ["mssp", "modules"],
       "properties": {
         "mssp": { "$ref": "#/$defs/nonEmptyString" },
-        "modules": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/nonEmptyString" }
-        }
+        "modules": { "type": "object", "additionalProperties": { "$ref": "#/$defs/nonEmptyString" } }
       }
     },
     "changeImpact": {
@@ -171,26 +117,7 @@
     "module": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "version",
-        "layer",
-        "purpose",
-        "activation",
-        "inputs",
-        "outputs",
-        "requirements",
-        "permissions",
-        "riskLevel",
-        "failureModes",
-        "validation",
-        "tests",
-        "compatibility",
-        "changeImpact",
-        "source",
-        "evidence"
-      ],
+      "required": ["id", "name", "version", "layer", "purpose", "activation", "inputs", "outputs", "requirements", "permissions", "riskLevel", "failureModes", "validation", "tests", "compatibility", "changeImpact", "source", "evidence"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmptyString" },
         "name": { "$ref": "#/$defs/nonEmptyString" },
@@ -211,60 +138,26 @@
         "changeImpact": { "$ref": "#/$defs/changeImpact" },
         "maintainer": { "$ref": "#/$defs/nonEmptyString" },
         "source": { "$ref": "#/$defs/source" },
-        "evidence": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/evidence" }
-        },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "metadata": { "type": "object", "additionalProperties": true }
       }
     },
     "candidate": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "name",
-        "path",
-        "boundaryKind",
-        "boundaryConfidence",
-        "status",
-        "fileCount",
-        "sourceFileCount",
-        "languages",
-        "source",
-        "evidence"
-      ],
+      "required": ["id", "name", "path", "boundaryKind", "boundaryConfidence", "status", "fileCount", "sourceFileCount", "languages", "source", "evidence"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmptyString" },
         "name": { "$ref": "#/$defs/nonEmptyString" },
         "path": { "$ref": "#/$defs/nonEmptyString" },
-        "boundaryKind": {
-          "enum": ["repository", "package", "source-root", "directory"]
-        },
-        "boundaryConfidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
+        "boundaryKind": { "enum": ["repository", "package", "source-root", "directory"] },
+        "boundaryConfidence": { "type": "number", "minimum": 0, "maximum": 1 },
         "status": { "const": "unclassified" },
-        "fileCount": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "sourceFileCount": {
-          "type": "integer",
-          "minimum": 0
-        },
+        "fileCount": { "type": "integer", "minimum": 0 },
+        "sourceFileCount": { "type": "integer", "minimum": 0 },
         "languages": { "$ref": "#/$defs/stringArray" },
         "source": { "$ref": "#/$defs/source" },
-        "evidence": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "$ref": "#/$defs/evidence" }
-        }
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
       }
     },
     "relation": {
@@ -276,10 +169,7 @@
         "from": { "$ref": "#/$defs/nonEmptyString" },
         "to": { "$ref": "#/$defs/nonEmptyString" },
         "source": { "$ref": "#/$defs/source" },
-        "evidence": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/evidence" }
-        }
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
       }
     },
     "policy": {
@@ -288,12 +178,7 @@
       "required": ["id", "value", "source"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmptyString" },
-        "value": {
-          "oneOf": [
-            { "type": "boolean" },
-            { "$ref": "#/$defs/nonEmptyString" }
-          ]
-        },
+        "value": { "oneOf": [{ "type": "boolean" }, { "$ref": "#/$defs/nonEmptyString" }] },
         "source": { "$ref": "#/$defs/source" }
       }
     },
@@ -317,23 +202,72 @@
       "required": ["id", "files", "extensions"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmptyString" },
-        "files": {
-          "type": "integer",
-          "minimum": 1
-        },
+        "files": { "type": "integer", "minimum": 1 },
         "extensions": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "repositoryIgnoreFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "basePath", "patterns", "source"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "basePath": { "$ref": "#/$defs/nonEmptyString" },
+        "patterns": { "$ref": "#/$defs/stringArray" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "repositoryIgnore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "ignoredFiles", "ignoredDirectories"],
+      "properties": {
+        "files": { "type": "array", "items": { "$ref": "#/$defs/repositoryIgnoreFile" } },
+        "ignoredFiles": { "type": "integer", "minimum": 0 },
+        "ignoredDirectories": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "repositoryGenerated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "paths"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "paths": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "repositoryWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "rootPath", "patterns", "members", "source"],
+      "properties": {
+        "kind": { "enum": ["npm", "pnpm", "cargo"] },
+        "rootPath": { "$ref": "#/$defs/nonEmptyString" },
+        "patterns": { "$ref": "#/$defs/stringArray" },
+        "members": { "$ref": "#/$defs/stringArray" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "repositoryDependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "scope", "from", "to", "targetKind", "specifiers", "sourceFiles", "occurrences", "evidence"],
+      "properties": {
+        "kind": { "const": "static-import" },
+        "scope": { "enum": ["internal", "cross-boundary", "workspace", "external", "unresolved"] },
+        "from": { "$ref": "#/$defs/nonEmptyString" },
+        "to": { "$ref": "#/$defs/nonEmptyString" },
+        "targetKind": { "enum": ["candidate", "external", "unresolved"] },
+        "specifiers": { "$ref": "#/$defs/stringArray" },
+        "sourceFiles": { "$ref": "#/$defs/stringArray" },
+        "occurrences": { "type": "integer", "minimum": 1 },
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
       }
     },
     "discovery": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "root",
-        "truncated",
-        "ignoredDirectories",
-        "inventory",
-        "markers"
-      ],
+      "required": ["root", "truncated", "ignoredDirectories", "inventory", "markers", "ignore", "generated", "workspaces", "dependencies"],
       "properties": {
         "root": { "const": "." },
         "revision": { "$ref": "#/$defs/nonEmptyString" },
@@ -344,24 +278,16 @@
           "additionalProperties": false,
           "required": ["files", "sourceFiles", "languages"],
           "properties": {
-            "files": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "sourceFiles": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "languages": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/discoveryLanguage" }
-            }
+            "files": { "type": "integer", "minimum": 0 },
+            "sourceFiles": { "type": "integer", "minimum": 0 },
+            "languages": { "type": "array", "items": { "$ref": "#/$defs/discoveryLanguage" } }
           }
         },
-        "markers": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/discoveryMarker" }
-        }
+        "markers": { "type": "array", "items": { "$ref": "#/$defs/discoveryMarker" } },
+        "ignore": { "$ref": "#/$defs/repositoryIgnore" },
+        "generated": { "$ref": "#/$defs/repositoryGenerated" },
+        "workspaces": { "type": "array", "items": { "$ref": "#/$defs/repositoryWorkspace" } },
+        "dependencies": { "type": "array", "items": { "$ref": "#/$defs/repositoryDependency" } }
       }
     }
   }
