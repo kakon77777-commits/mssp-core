@@ -13,26 +13,44 @@ function fixture(): string {
   const root = mkdtempSync(join(tmpdir(), "mssp-scan-"));
   mkdirSync(join(root, "src", "core"), { recursive: true });
   mkdirSync(join(root, "packages", "plugin", "src"), { recursive: true });
+  mkdirSync(join(root, "ignored-by-rule"), { recursive: true });
   mkdirSync(join(root, "node_modules", "ignored"), { recursive: true });
   mkdirSync(join(root, "dist"), { recursive: true });
 
+  writeFileSync(join(root, ".gitignore"), "ignored-by-rule/\n*.cache.ts\n");
   writeFileSync(join(root, "package.json"), JSON.stringify({
     name: "scan-demo",
     version: "1.2.3",
     workspaces: ["packages/*"],
   }, null, 2));
-  writeFileSync(join(root, "src", "core", "index.ts"), "export const core = true;\n");
+  writeFileSync(
+    join(root, "src", "core", "index.ts"),
+    "import { plugin } from '@scan/plugin';\nimport { util } from './util';\nexport const core = plugin + util;\n",
+  );
+  writeFileSync(join(root, "src", "core", "util.ts"), "export const util = 1;\n");
+  writeFileSync(
+    join(root, "src", "core", "model.generated.ts"),
+    "import generatedOnly from 'generated-only';\nexport default generatedOnly;\n",
+  );
+  writeFileSync(join(root, "src", "core", "skip.cache.ts"), "export const ignored = true;\n");
   writeFileSync(join(root, "packages", "plugin", "package.json"), JSON.stringify({
     name: "@scan/plugin",
     version: "0.4.0",
   }, null, 2));
-  writeFileSync(join(root, "packages", "plugin", "src", "index.py"), "print('plugin')\n");
+  writeFileSync(
+    join(root, "packages", "plugin", "src", "index.ts"),
+    "import leftPad from 'left-pad';\nexport const plugin = leftPad('1', 2);\n",
+  );
+  writeFileSync(join(root, "packages", "plugin", "src", "worker.py"), "import requests\n");
+  writeFileSync(join(root, "packages", "plugin", ".gitignore"), "secret.py\n");
+  writeFileSync(join(root, "packages", "plugin", "secret.py"), "raise RuntimeError('ignored')\n");
+  writeFileSync(join(root, "ignored-by-rule", "index.ts"), "throw new Error('ignored');\n");
   writeFileSync(join(root, "node_modules", "ignored", "index.ts"), "throw new Error('ignored');\n");
   writeFileSync(join(root, "dist", "generated.js"), "export const generated = true;\n");
   return root;
 }
 
-describe("MSSP repository scanner foundation", () => {
+describe("MSSP dependency-aware repository scanner", () => {
   it("emits a schema-valid Intermediate Model without forcing MSSP layers", () => {
     const model = scanRepository(fixture(), { revision: "scan-revision" });
 
@@ -41,30 +59,74 @@ describe("MSSP repository scanner foundation", () => {
     expect(model.project.version).toBe("1.2.3");
     expect(model.modules).toEqual([]);
     expect(model.layers).toEqual([]);
+    expect(model.relations).toEqual([]);
     expect(model.candidates.length).toBeGreaterThanOrEqual(3);
     expect(model.candidates.every((candidate) => candidate.status === "unclassified")).toBe(true);
     expect(model.candidates.every((candidate) => !("layer" in candidate))).toBe(true);
-    expect(model.discovery?.revision).toBe("scan-revision");
+    expect(model.discovery.revision).toBe("scan-revision");
     expect(validateIntermediateModelSchema(model)).toBe(true);
   });
 
-  it("discovers markers, source languages, and structural candidates with evidence", () => {
+  it("uses .gitignore files without executing repository code", () => {
     const model = scanRepository(fixture());
-    const plugin = model.candidates.find((candidate) => candidate.path === "packages/plugin");
-    const root = model.candidates.find((candidate) => candidate.path === ".");
 
-    expect(model.discovery?.markers.filter((marker) => marker.kind === "node-package")).toHaveLength(2);
-    expect(model.discovery?.inventory.files).toBe(4);
-    expect(model.discovery?.inventory.sourceFiles).toBe(2);
-    expect(model.discovery?.inventory.languages.map((language) => language.id)).toEqual([
+    expect(model.discovery.ignore.files.map((file) => file.path)).toEqual([
+      ".gitignore",
+      "packages/plugin/.gitignore",
+    ]);
+    expect(model.discovery.ignore.ignoredDirectories).toBe(1);
+    expect(model.discovery.ignore.ignoredFiles).toBe(2);
+    expect(model.discovery.inventory.languages.map((language) => language.id)).toEqual([
       "python",
       "typescript",
     ]);
+  });
+
+  it("discovers workspace membership and strengthens structural evidence", () => {
+    const model = scanRepository(fixture());
+    const plugin = model.candidates.find((candidate) => candidate.path === "packages/plugin");
+    const workspace = model.discovery.workspaces[0];
+
+    expect(workspace?.kind).toBe("npm");
+    expect(workspace?.patterns).toEqual(["packages/*"]);
+    expect(workspace?.members).toEqual(["packages/plugin"]);
     expect(plugin?.name).toBe("@scan/plugin");
     expect(plugin?.boundaryKind).toBe("package");
-    expect(plugin?.languages).toContain("python");
-    expect(plugin?.evidence.some((evidence) => evidence.source?.uri === "packages/plugin/package.json")).toBe(true);
-    expect(root?.boundaryConfidence).toBe(1);
+    expect(plugin?.boundaryConfidence).toBe(0.98);
+    expect(plugin?.evidence.some((evidence) =>
+      evidence.message.includes("workspace pattern")
+    )).toBe(true);
+  });
+
+  it("emits static dependency evidence without converting it into runtime relations", () => {
+    const model = scanRepository(fixture());
+    const workspaceDependency = model.discovery.dependencies.find((dependency) =>
+      dependency.scope === "workspace"
+      && dependency.from === "candidate.src"
+      && dependency.to === "candidate.packages.plugin"
+    );
+    const internalDependency = model.discovery.dependencies.find((dependency) =>
+      dependency.scope === "internal"
+      && dependency.from === "candidate.src"
+    );
+    const externalTargets = model.discovery.dependencies
+      .filter((dependency) => dependency.scope === "external")
+      .map((dependency) => dependency.to);
+
+    expect(workspaceDependency?.specifiers).toEqual(["@scan/plugin"]);
+    expect(internalDependency?.specifiers).toEqual(["./util"]);
+    expect(externalTargets).toContain("external:left-pad");
+    expect(externalTargets).toContain("external:requests");
+    expect(model.relations).toEqual([]);
+  });
+
+  it("records generated sources but excludes them from static import evidence", () => {
+    const model = scanRepository(fixture());
+    const allSpecifiers = model.discovery.dependencies.flatMap((dependency) => dependency.specifiers);
+
+    expect(model.discovery.generated.files).toBe(1);
+    expect(model.discovery.generated.paths).toEqual(["src/core/model.generated.ts"]);
+    expect(allSpecifiers).not.toContain("generated-only");
   });
 
   it("is deterministic and records bounded scans", () => {
@@ -74,8 +136,8 @@ describe("MSSP repository scanner foundation", () => {
     const bounded = scanRepository(root, { maxFiles: 2 });
 
     expect(second).toBe(first);
-    expect(bounded.discovery?.truncated).toBe(true);
-    expect(bounded.discovery?.inventory.files).toBe(2);
+    expect(bounded.discovery.truncated).toBe(true);
+    expect(bounded.discovery.inventory.files).toBe(2);
     expect(validateIntermediateModelSchema(bounded)).toBe(true);
   });
 });
