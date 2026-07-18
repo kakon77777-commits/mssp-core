@@ -1,7 +1,16 @@
-import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import {
+  cpSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildGitDiffImpactReport,
+  collectGitDiffChanges,
   parseGitNameStatus,
 } from "../src/impact.js";
 import type { GitDiffCollection } from "../src/impact.js";
@@ -31,6 +40,10 @@ function modified(path: string): GitDiffCollection["changes"][number] {
   };
 }
 
+function git(cwd: string, args: string[]): void {
+  execFileSync("git", args, { cwd, stdio: "ignore" });
+}
+
 describe("MSSP Git Diff Impact Report v0.2", () => {
   it("parses deterministic Git name-status records including renames", () => {
     const parsed = parseGitNameStatus([
@@ -50,6 +63,34 @@ describe("MSSP Git Diff Impact Report v0.2", () => {
         oldRepositoryPath: "examples/hello-mssp/TMS/old.js",
       },
     ]);
+  });
+
+  it("records additions and deletions as opposite project-boundary transitions", () => {
+    const repository = mkdtempSync(join(tmpdir(), "mssp-impact-git-"));
+    const project = join(repository, "project");
+    cpSync(example, project, { recursive: true });
+    git(repository, ["init", "-q"]);
+    git(repository, ["config", "user.email", "impact@example.invalid"]);
+    git(repository, ["config", "user.name", "MSSP Impact Test"]);
+    git(repository, ["add", "."]);
+    git(repository, ["commit", "-qm", "initial"]);
+
+    const addedPath = join(project, "TMS", "uppercase", "generated-note.txt");
+    writeFileSync(addedPath, "new\n");
+    git(repository, ["add", "."]);
+    git(repository, ["commit", "-qm", "add path"]);
+    const added = collectGitDiffChanges(project, "HEAD^1", "HEAD").changes
+      .find((change) => change.path === "TMS/uppercase/generated-note.txt");
+    expect(added?.status).toBe("added");
+    expect(added?.transition).toBe("into-project");
+
+    rmSync(addedPath);
+    git(repository, ["add", "-A"]);
+    git(repository, ["commit", "-qm", "delete path"]);
+    const deleted = collectGitDiffChanges(project, "HEAD^1", "HEAD").changes
+      .find((change) => change.path === "TMS/uppercase/generated-note.txt");
+    expect(deleted?.status).toBe("deleted");
+    expect(deleted?.transition).toBe("out-of-project");
   });
 
   it("emits a schema-valid no-impact report for an empty comparison", () => {
