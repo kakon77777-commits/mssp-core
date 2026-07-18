@@ -29,6 +29,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: node dist/cli.js adapters --json --out adapter-descriptors.json
+      - run: node dist/cli.js adapt agent-skill examples/agent-skill-adapter/semantic-export.json --revision "${{ github.sha }}" --out agent-skill-intermediate-model.json
       - run: node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json --revision "${{ github.sha }}" --out eml-intermediate-model.json
       - run: node dist/cli.js adapt godot examples/godot-adapter/semantic-export.json --revision "${{ github.sha }}" --out godot-intermediate-model.json
       - run: node dist/cli.js adapt python examples/python-adapter/semantic-export.json --revision "${{ github.sha }}" --out python-intermediate-model.json
@@ -51,6 +52,7 @@ jobs:
           name: mssp-validation-artifacts
           path: |
             adapter-descriptors.json
+            agent-skill-intermediate-model.json
             architecture-drift.json
             architecture.html
             architecture.mmd
