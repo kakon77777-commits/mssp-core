@@ -39,6 +39,7 @@ mssp review-candidate
 mssp promote-candidate
 mssp drift
 mssp impact
+mssp route
 mssp viz
 mssp adapters
 mssp adapt
@@ -53,6 +54,9 @@ Review approval         != completed contract
 Manifest emission       != project registration
 Drift consistency       != semantic equivalence
 Impact detected         != incompatibility
+Router selected         != activated or executed
+Permission match        != permission grant
+Compatibility satisfied != runtime compatibility proof
 Visualization           != architecture authority
 Projection grouping     != canonical layer mutation
 Hidden renderer data    != absent architecture
@@ -71,6 +75,7 @@ node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.
 node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
 node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
 node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
+node dist/cli.js route examples/hello-mssp --request examples/hello-mssp/router-request.json --revision HEAD --out router-evaluation.json
 node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
 node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
@@ -114,6 +119,58 @@ Repository
 The scanner recognizes common Node.js, Python, Rust, Go, Godot, JVM, and .NET markers; npm, pnpm, and Cargo workspaces; nested `.gitignore` evidence; generated-source conventions; and static references for JavaScript/TypeScript, Python, Go, Rust, and GDScript.
 
 Static references remain under `discovery.dependencies`. They do not become approved runtime relations.
+
+## Router governance
+
+`mssp route` evaluates declared TMS modules against an explicit Router Request without loading or executing them.
+
+```bash
+node dist/cli.js route examples/hello-mssp \
+  --request examples/hello-mssp/router-request.json \
+  --revision HEAD \
+  --out router-evaluation.json
+```
+
+The request supplies explicit facts, MSSP version, available inputs/modules/tools/data, required outputs, requested operations, a risk ceiling, and an optional target set.
+
+The evaluator checks:
+
+```text
+activateWhen conditions
+input and output contracts
+required module availability
+required tools and data
+permissions.may and permissions.mayNot
+risk ceiling
+MSSP and required-module version ranges
+```
+
+Only declared TMS modules are candidates. The reference evaluator returns:
+
+```text
+selected       exactly one eligible TMS and no uncertainty
+ambiguous      multiple eligible TMS modules
+no-match       no eligible TMS and no uncertainty
+indeterminate  unsupported or incomplete evidence remains
+```
+
+It never silently ranks multiple eligible modules. Unsupported activation or version syntax remains indeterminate rather than being guessed.
+
+Router evaluation preserves:
+
+```json
+{
+  "deterministic": true,
+  "readOnly": true,
+  "noExecution": true,
+  "noNetwork": true,
+  "autoActivation": false,
+  "autoMutation": false,
+  "runtimeCompatibilityProof": false
+}
+```
+
+A `selected` result is static contract eligibility only. SCL approval, permission grant, execution planning, module activation, and runtime compatibility proof remain separate stages.
 
 ## Visualization
 
@@ -262,14 +319,18 @@ Memory policy       != SCL approval
 - [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
 - [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
 
-Traditional Chinese guides are available under [`docs/`](docs/), including the [Visualization guide](docs/visualization.zh-TW.md), consolidated [Adapter guide](docs/adapters.zh-TW.md), [Godot guide](docs/godot-adapter.zh-TW.md), and [Agent Skill guide](docs/agent-skill-adapter.zh-TW.md).
+### v0.4 runtime governance
+
+- [Router Contract Evaluator v0.4](spec/MSSP-ROUTER-CONTRACT-EVALUATOR-v0.4.md)
+
+Traditional Chinese guides are available under [`docs/`](docs/), including the [Router guide](docs/router-contract-evaluator.zh-TW.md), [Visualization guide](docs/visualization.zh-TW.md), consolidated [Adapter guide](docs/adapters.zh-TW.md), [Godot guide](docs/godot-adapter.zh-TW.md), and [Agent Skill guide](docs/agent-skill-adapter.zh-TW.md).
 
 ## Repository map
 
 ```text
 schemas/                         Normative JSON Schemas
 src/                             TypeScript reference implementation and CLI
-examples/hello-mssp/             Complete MSSP adoption fixture
+examples/hello-mssp/             Complete MSSP adoption fixture and Router Request
 examples/agent-skill-adapter/    Agent Skill semantic-export fixture
 examples/eml-adapter/            EML semantic-export fixture
 examples/godot-adapter/          Godot semantic-export fixture
@@ -285,8 +346,10 @@ docs/                            Adoption, roadmap, and research guides
 - v0.1 architecture-contract MVP: complete.
 - Principal v0.2 repository-intelligence vertical slices: complete.
 - v0.3 visualization, multi-view/large-graph foundation, and five reference-adapter vertical slices: complete.
+- v0.4 Router Contract Evaluator foundation: complete.
+- Runtime execution planning, DMS trace transport, SCL enforcement hooks, and risk-aware execution policy remain open.
 - Canvas/WebGL virtualization, worker-based layout, clustering, and measured browser performance guarantees remain outside the current visualization renderer.
-- Compiler-grade AST extraction, complete alias/build-graph resolution, full Git-ignore equivalence, generated-source provenance, runtime DMS transport, and automatic semantic-version selection remain outside the current implementation.
+- Compiler-grade AST extraction, complete alias/build-graph resolution, full Git-ignore equivalence, generated-source provenance, and automatic semantic-version selection remain outside the current implementation.
 
 See [Roadmap](docs/roadmap.md) and [Validation Report](VALIDATION-REPORT.md).
 
