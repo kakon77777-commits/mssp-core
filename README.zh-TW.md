@@ -39,6 +39,7 @@ mssp review-candidate
 mssp promote-candidate
 mssp drift
 mssp impact
+mssp route
 mssp viz
 mssp adapters
 mssp adapt
@@ -53,6 +54,9 @@ Review Approval       ≠ Completed Contract
 Manifest Emission     ≠ Project Registration
 Drift Consistency     ≠ Semantic Equivalence
 Impact Detected       ≠ Incompatibility
+Router Selected       ≠ Activated 或 Executed
+Permission Match      ≠ Permission Grant
+Compatibility Pass    ≠ Runtime Compatibility Proof
 Visualization         ≠ Architecture Authority
 Projection Grouping   ≠ Canonical Layer Mutation
 Hidden Renderer Data  ≠ Absent Architecture
@@ -71,6 +75,7 @@ node dist/cli.js scan . --revision HEAD --max-files 10000 --out repository-scan.
 node dist/cli.js classify . --revision HEAD --max-files 10000 --out classification-suggestions.json
 node dist/cli.js drift examples/hello-mssp --revision HEAD --out architecture-drift.json
 node dist/cli.js impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD --out git-diff-impact.json
+node dist/cli.js route examples/hello-mssp --request examples/hello-mssp/router-request.json --revision HEAD --out router-evaluation.json
 node dist/cli.js viz examples/hello-mssp --format html --view layer --revision HEAD --out architecture.html
 node dist/cli.js graph examples/hello-mssp --format mermaid --out architecture.mmd
 ```
@@ -88,9 +93,9 @@ Validator / Graph / Visualization / IDE / Agent / Drift / Impact
 模型明確區分：
 
 ```text
-正式 Modules          與尚未分類的 Candidates
-Normative Relations  與 Scanner Discovery Evidence
-Portable Provenance  與本機環境狀態
+正式 Modules           與尚未分類的 Candidates
+Normative Relations   與 Scanner Discovery Evidence
+Portable Provenance   與本機環境狀態
 Source Representation 與 Architecture Approval
 ```
 
@@ -114,6 +119,58 @@ Source Representation 與 Architecture Approval
 Scanner 可辨識常見 Node.js、Python、Rust、Go、Godot、JVM 與 .NET 標記；npm、pnpm 與 Cargo Workspace；巢狀 `.gitignore` 證據；生成檔慣例；以及 JavaScript／TypeScript、Python、Go、Rust、GDScript 的靜態引用。
 
 靜態引用保留在 `discovery.dependencies`，不會自行成為正式 Runtime Relation。
+
+## Router 治理
+
+`mssp route` 根據明確 Router Request 與既有 Module Contract，判斷正式 TMS 是否具備靜態選擇資格。
+
+```bash
+node dist/cli.js route examples/hello-mssp \
+  --request examples/hello-mssp/router-request.json \
+  --revision HEAD \
+  --out router-evaluation.json
+```
+
+Request 明確提供 Facts、MSSP Version、可用 Inputs／Modules／Tools／Data、所需 Outputs、預期操作、Risk 上限與選配 Target Set。
+
+Evaluator 會檢查：
+
+```text
+activateWhen Conditions
+Input 與 Output Contracts
+Required Module Availability
+Required Tools 與 Data
+permissions.may 與 permissions.mayNot
+Risk Ceiling
+MSSP 與 Required Module Version Ranges
+```
+
+只有正式聲明為 TMS 的 Module 才是 Candidate。結果分為：
+
+```text
+selected       只有一個 Eligible TMS，且沒有不確定項
+ambiguous      多個 TMS 同時 Eligible
+no-match       沒有 Eligible TMS，且沒有不確定項
+indeterminate  仍有無法保守判定的證據
+```
+
+Evaluator 不會在多個 Eligible TMS 中透過隱藏排序擅自選擇。無法理解的 Activation 或 Version 語法會保留為 `indeterminate`，而不是猜測。
+
+Router Evaluation 固定保持：
+
+```json
+{
+  "deterministic": true,
+  "readOnly": true,
+  "noExecution": true,
+  "noNetwork": true,
+  "autoActivation": false,
+  "autoMutation": false,
+  "runtimeCompatibilityProof": false
+}
+```
+
+`selected` 只代表 Static Contract Eligibility。SCL Approval、Permission Grant、Execution Planning、Module Activation 與 Runtime Compatibility Proof 仍是不同階段。
 
 ## 視覺化
 
@@ -264,14 +321,18 @@ Memory Policy       ≠ SCL Approval
 - [Godot Adapter v0.3](spec/MSSP-GODOT-ADAPTER-v0.3.md)
 - [Agent Skill Adapter v0.3](spec/MSSP-AGENT-SKILL-ADAPTER-v0.3.md)
 
-更多繁中說明位於 [`docs/`](docs/)，包括[Visualization 指南](docs/visualization.zh-TW.md)、[綜合 Adapter 指南](docs/adapters.zh-TW.md)、[Godot Adapter 指南](docs/godot-adapter.zh-TW.md)與 [Agent Skill Adapter 指南](docs/agent-skill-adapter.zh-TW.md)。
+### v0.4 Runtime Governance
+
+- [Router Contract Evaluator v0.4](spec/MSSP-ROUTER-CONTRACT-EVALUATOR-v0.4.md)
+
+更多繁中說明位於 [`docs/`](docs/)，包括 [Router 指南](docs/router-contract-evaluator.zh-TW.md)、[Visualization 指南](docs/visualization.zh-TW.md)、[綜合 Adapter 指南](docs/adapters.zh-TW.md)、[Godot Adapter 指南](docs/godot-adapter.zh-TW.md)與 [Agent Skill Adapter 指南](docs/agent-skill-adapter.zh-TW.md)。
 
 ## 倉庫地圖
 
 ```text
 schemas/                         規範 JSON Schema
 src/                             TypeScript Reference Implementation 與 CLI
-examples/hello-mssp/             完整 MSSP Adoption Fixture
+examples/hello-mssp/             完整 MSSP Adoption Fixture 與 Router Request
 examples/agent-skill-adapter/    Agent Skill Semantic Export Fixture
 examples/eml-adapter/            EML Semantic Export Fixture
 examples/godot-adapter/          Godot Semantic Export Fixture
@@ -287,8 +348,10 @@ docs/                            Adoption、Roadmap 與研究指南
 - v0.1 Architecture Contract MVP：完成。
 - v0.2 主要 Repository Intelligence Vertical Slices：完成。
 - v0.3 Visualization、Multi-view／Large-graph Foundation 與五個 Reference Adapter Vertical Slices：完成。
+- v0.4 Router Contract Evaluator Foundation：完成。
+- Runtime Execution Planning、DMS Trace Transport、SCL Enforcement Hooks 與 Risk-aware Execution Policy 尚未完成。
 - Canvas／WebGL Virtualization、Worker-based Layout、Clustering 與實測 Browser Performance Guarantee 仍在目前 Visualization Renderer 範圍之外。
-- Compiler-grade AST、完整 Alias／Build Graph、完整 Git-ignore 等價、Generated-source Provenance、Runtime DMS Transport 與 Automatic Semantic-version Selection 仍在目前實作範圍之外。
+- Compiler-grade AST、完整 Alias／Build Graph、完整 Git-ignore 等價、Generated-source Provenance 與 Automatic Semantic-version Selection 仍在目前實作範圍之外。
 
 參閱 [Roadmap](docs/roadmap.md) 與 [Validation Report](VALIDATION-REPORT.md)。
 
