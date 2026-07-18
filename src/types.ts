@@ -97,7 +97,24 @@ export interface LoadedProject {
   modules: LoadedModule[];
 }
 
-export type DiagnosticLevel = "error" | "warning";
+export type DiagnosticLevel = "error" | "warning" | "info";
+
+export type DiagnosticEvidenceKind =
+  | "source"
+  | "manifest"
+  | "dependency"
+  | "policy"
+  | "runtime"
+  | "test"
+  | "other";
+
+export interface DiagnosticEvidence {
+  kind: DiagnosticEvidenceKind;
+  message: string;
+  file?: string;
+  moduleId?: string;
+  data?: Record<string, unknown>;
+}
 
 export interface Diagnostic {
   level: DiagnosticLevel;
@@ -105,6 +122,12 @@ export interface Diagnostic {
   message: string;
   file?: string;
   moduleId?: string;
+  path?: string;
+  line?: number;
+  column?: number;
+  relatedModules?: string[];
+  evidence?: DiagnosticEvidence[];
+  suggestedActions?: string[];
 }
 
 export interface ValidationReport {
