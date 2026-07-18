@@ -30,12 +30,20 @@
 - Added `mssp promote-candidate` with blocker recomputation, independent approver separation, module Schema validation, provenance metadata, and overwrite refusal.
 - Promotion does not modify `mssp.yaml`, register a module automatically, create runtime relations, execute repository code, or trust a stored readiness flag.
 - Added `schemas/promotion-review.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
+- Added MSSP Architecture Drift Report v0.2 through `mssp drift`.
+- Added canonical FMS document checks and conservative Markdown `ID`/`Layer` module-index parsing.
+- Added missing, stale, duplicate, and layer-mismatched FMS index findings.
+- Added bounded source ownership checks for unowned and overlapping executable module boundaries.
+- Added executable-source findings for declarative FMS and SCL layers.
+- Added explicit `drift` and `indeterminate` states, stable `MSSP_DRIFT_001` through `MSSP_DRIFT_010` codes, and fixed `semanticEquivalence: false` and `autoMutation: false` invariants.
+- Added `schemas/architecture-drift.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
 - Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
+- Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
