@@ -102,6 +102,55 @@ export interface IntermediatePolicy {
   source: ModelSourceReference;
 }
 
+export type CandidateBoundaryKind =
+  | "repository"
+  | "package"
+  | "source-root"
+  | "directory";
+
+export interface IntermediateCandidate {
+  id: string;
+  name: string;
+  path: string;
+  boundaryKind: CandidateBoundaryKind;
+  boundaryConfidence: number;
+  status: "unclassified";
+  fileCount: number;
+  sourceFileCount: number;
+  languages: string[];
+  source: ModelSourceReference;
+  evidence: ModelEvidence[];
+}
+
+export interface IntermediateDiscoveryMarker {
+  kind: string;
+  ecosystem: string;
+  path: string;
+  boundaryPath: string;
+  name?: string;
+  version?: string;
+  source: ModelSourceReference;
+}
+
+export interface IntermediateDiscoveryLanguage {
+  id: string;
+  files: number;
+  extensions: string[];
+}
+
+export interface IntermediateDiscovery {
+  root: ".";
+  revision?: string;
+  truncated: boolean;
+  ignoredDirectories: string[];
+  inventory: {
+    files: number;
+    sourceFiles: number;
+    languages: IntermediateDiscoveryLanguage[];
+  };
+  markers: IntermediateDiscoveryMarker[];
+}
+
 export interface MsspIntermediateModel {
   schemaVersion: typeof MSSP_INTERMEDIATE_MODEL_VERSION;
   kind: typeof MSSP_INTERMEDIATE_MODEL_KIND;
@@ -113,8 +162,10 @@ export interface MsspIntermediateModel {
   project: IntermediateProjectIdentity;
   layers: IntermediateLayer[];
   modules: IntermediateModule[];
+  candidates: IntermediateCandidate[];
   relations: IntermediateRelation[];
   policies: IntermediatePolicy[];
+  discovery?: IntermediateDiscovery;
 }
 
 export interface IntermediateModelOptions {
@@ -298,6 +349,7 @@ export function buildIntermediateModel(
     project: identity,
     layers,
     modules,
+    candidates: [],
     relations: buildRelations(modules),
     policies,
   };
