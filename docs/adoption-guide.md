@@ -30,6 +30,25 @@ Every candidate decision should be recorded as `approve`, `reject`, or `defer`. 
 
 Manifest emission does not register the module automatically. Adding the emitted manifest to `mssp.yaml` remains a separate architecture change.
 
+## Check that architecture declarations remain true
+
+Run the structural drift report after module registration and during architecture-changing pull requests:
+
+```bash
+mssp drift . --revision HEAD --max-files 50000 --out architecture-drift.json
+```
+
+The report compares:
+
+- canonical FMS document presence;
+- the `ID` and `Layer` table in `FMS/01_MODULE_INDEX.md`;
+- discovered module manifests;
+- executable source ownership under configured layer roots.
+
+A clean report means the observed structural contracts are mutually consistent. It does not prove semantic or runtime equivalence.
+
+Treat `indeterminate` findings as unresolved evidence, not as success. Increase the file bound or make FMS records machine-readable before approving an architecture claim.
+
 ## Decide SMS conservatively
 
 A module belongs in SMS only when removing it prevents every valid system closure. "Important", "large", and "frequently used" do not automatically mean SMS.
@@ -86,4 +105,4 @@ DMS outputs should include:
 
 ## Pull-request discipline
 
-Architecture-changing PRs update FMS. Compatibility-changing PRs update MSSP-VT. New TMS modules add island evidence. Candidate promotions retain review and approval provenance. CI runs `mssp lint`, `mssp island`, repository scan, classification, and review-artifact validation.
+Architecture-changing PRs update FMS. Compatibility-changing PRs update MSSP-VT. New TMS modules add island evidence. Candidate promotions retain review and approval provenance. CI runs `mssp lint`, `mssp island`, repository scan, classification, candidate review validation, and `mssp drift`.
