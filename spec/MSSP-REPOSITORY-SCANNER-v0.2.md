@@ -1,32 +1,32 @@
 # MSSP Repository Scanner v0.2
 
-**Status:** Draft, foundation implemented by MSSP Core  
+**Status:** Draft, dependency-aware static evidence implemented by MSSP Core  
 **Scanner adapter:** `repository-scanner`  
 **Output contract:** `schemas/intermediate-model.schema.json`
 
 ## 1. Purpose
 
-The Repository Scanner discovers structural evidence in an existing repository before the repository has complete MSSP manifests.
+The Repository Scanner discovers inspectable structural evidence in an existing repository before the repository has complete MSSP manifests.
 
-It answers four limited questions:
+It answers six limited questions:
 
 1. What files and source languages are present?
 2. Which ecosystem markers identify project or package boundaries?
 3. Which conventional directories are plausible module boundaries?
-4. What evidence supports each candidate boundary?
+4. Which declared workspaces strengthen those boundary candidates?
+5. Which static source references cross candidate boundaries?
+6. What evidence supports every discovery statement?
 
 It does **not** decide that a candidate is SMS, TMS, FMS, SCL, DMS, Router, or Runtime.
 
 ```text
 Repository
-    ↓ deterministic file inventory
-Markers and structural boundaries
-    ↓ evidence-backed discovery
-Unclassified candidates
-    ↓ human / governed agent review
-Classified MSSP modules
-    ↓
-MSSP Intermediate Model consumers
+    ↓ deterministic bounded inventory
+Markers / .gitignore / workspaces / generated-source conventions
+    ↓ static dependency evidence
+Unclassified structural candidates
+    ↓ human or governed-agent review
+Declared MSSP modules
 ```
 
 ## 2. Output model
@@ -37,39 +37,37 @@ For an unclassified repository scan:
 
 - `modules` is empty;
 - `layers` is empty;
-- `relations` is empty unless a later scanner stage has explicit evidence;
+- `relations` is empty;
 - `candidates` contains structural candidates;
-- `discovery` contains inventory, marker, truncation, and ignore-rule information;
+- `discovery` contains inventory, markers, ignore evidence, generated-source observations, workspace declarations, and static dependencies;
 - `project.metadata.classificationStatus` is `unclassified`.
 
-This allows scanners and manifest adapters to share one exchange model without pretending that structural discovery is architecture classification.
+Scanner dependency evidence remains inside `discovery.dependencies`. It is not promoted into normative MSSP runtime `relations` because a source import is evidence, not yet an architecture contract.
 
 ## 3. Candidate contract
 
 Each candidate contains:
 
 - deterministic candidate ID;
-- portable repository-relative path;
-- boundary kind;
-- boundary confidence;
+- repository-relative path;
+- boundary kind and structural confidence;
 - classification status;
 - file and source-file counts;
-- observed source languages;
-- source reference;
-- evidence records.
+- observed languages;
+- source reference and evidence.
 
 The v0.2 boundary kinds are:
 
 | Kind | Meaning |
 |---|---|
 | `repository` | Explicit scan root |
-| `package` | Directory containing a recognized project/package marker |
+| `package` | Recognized package/project or declared workspace member |
 | `source-root` | Conventional source directory containing source files |
 | `directory` | Source-bearing child of a conventional multi-module container |
 
-`boundaryConfidence` measures confidence that a path is a structural boundary. It is **not** confidence that the candidate belongs to an MSSP layer.
+`boundaryConfidence` measures confidence that a path is a structural boundary. It is **not** MSSP layer-classification confidence.
 
-Every v0.2 candidate has:
+A declared workspace member raises structural confidence to at least `0.98`, while leaving:
 
 ```json
 {
@@ -77,103 +75,144 @@ Every v0.2 candidate has:
 }
 ```
 
-A consumer MUST NOT reinterpret boundary confidence as SMS/TMS classification confidence.
-
 ## 4. Recognized markers
 
-The foundation scanner recognizes:
+The scanner recognizes:
 
 | Marker | Ecosystem |
 |---|---|
-| `package.json` | Node.js |
+| `package.json`, `pnpm-workspace.yaml` | Node.js workspace/package |
 | `pyproject.toml`, `setup.py` | Python |
-| `Cargo.toml` | Rust |
+| `Cargo.toml` | Rust package/workspace |
 | `go.mod` | Go |
 | `project.godot` | Godot |
 | `pom.xml`, `build.gradle`, `build.gradle.kts` | JVM |
 | `*.csproj`, `*.sln` | .NET |
 
-Where safely available, the scanner reads project name and version metadata. Marker parsing never executes repository code.
+Where safely available, project name and version are read as text. Repository code is never executed.
 
-## 5. Conventional boundaries
+## 5. Workspace evidence
 
-The foundation scanner recognizes these source roots:
+The reference scanner reads static workspace declarations from:
 
-```text
-app/
-lib/
-src/
+- `package.json` `workspaces` arrays or `workspaces.packages`;
+- `pnpm-workspace.yaml` `packages`;
+- `Cargo.toml` `[workspace].members`.
+
+A workspace record contains:
+
+```json
+{
+  "kind": "npm",
+  "rootPath": ".",
+  "patterns": ["packages/*"],
+  "members": ["packages/exporter"],
+  "source": {
+    "kind": "scanner",
+    "uri": "package.json"
+  }
+}
 ```
 
-It recognizes source-bearing children of these multi-module containers:
+Workspace membership is structural evidence. It does not imply SMS, TMS, deployment, ownership, or runtime activation.
 
-```text
-addons/
-apps/
-crates/
-modules/
-packages/
-plugins/
-services/
+## 6. Static dependency evidence
+
+The reference scanner performs bounded, non-executing textual extraction for:
+
+- JavaScript and TypeScript `import`, `export ... from`, `require()`, and literal dynamic `import()`;
+- Python `import` and `from ... import`;
+- Go quoted import paths;
+- Rust `use` roots;
+- GDScript literal `preload()` and `load()`.
+
+Each aggregated dependency contains:
+
+```json
+{
+  "kind": "static-import",
+  "scope": "workspace",
+  "from": "candidate.src",
+  "to": "candidate.packages.exporter",
+  "targetKind": "candidate",
+  "specifiers": ["@example/exporter"],
+  "sourceFiles": ["src/index.ts"],
+  "occurrences": 1,
+  "evidence": []
+}
 ```
 
-These conventions produce candidates with inference evidence. They do not create MSSP modules automatically.
+The scopes are:
 
-## 6. Ignored directories
+| Scope | Meaning |
+|---|---|
+| `internal` | Source reference resolves inside the same candidate |
+| `cross-boundary` | Relative reference resolves into another candidate |
+| `workspace` | Package specifier resolves to a declared workspace member |
+| `external` | Non-local specifier has no workspace target |
+| `unresolved` | Local-looking specifier cannot be resolved from the scanned inventory |
 
-The scanner skips common generated, dependency, cache, and editor directories, including:
+The parser identifier is recorded as `static-regex-v0.2`. These results are static evidence, not AST-complete or runtime-complete dependency truth.
 
-```text
-.git
-node_modules
-dist
-build
-coverage
-target
-.venv
-venv
-.next
-.nuxt
-bin
-obj
-```
+## 7. `.gitignore` evaluation
 
-The complete deterministic ignore set is returned in `discovery.ignoredDirectories`.
+The scanner reads root and nested `.gitignore` files before scanning each directory. It supports:
 
-v0.2 does not yet parse `.gitignore`, nested ignore files, or ecosystem-specific ignore semantics.
+- comments and blank lines;
+- `!` negation for already reachable paths;
+- anchored and unanchored patterns;
+- `*`, `**`, and `?` wildcards;
+- trailing `/` directory patterns.
 
-## 7. Determinism
+The output records ignore files, normalized patterns, ignored-file count, and ignored-directory count.
 
-For identical repository contents and scanner options, the reference scanner provides deterministic output by:
+The implementation intentionally does not execute Git. It does not yet reproduce every escaping, attribute, or parent-directory re-inclusion edge case from Git's complete ignore engine. Hard-coded dependency/build/cache exclusions remain active independently.
 
-- traversing entries in lexical order;
-- emitting repository-relative paths;
-- skipping symbolic links;
-- sorting markers, languages, candidates, and evidence;
-- omitting wall-clock timestamps;
-- adding a revision only when explicitly supplied.
+## 8. Generated-source observation
 
-## 8. Resource bound
+Files are marked as generated evidence when paths match conservative conventions such as:
 
-The default scan bound is 50,000 files.
+- `generated/` or `gen/` directories;
+- `*.generated.*`;
+- `*.g.cs`, `*.g.dart`;
+- `*_pb2.py`;
+- minified JavaScript or CSS names.
+
+Generated files remain in the inventory but are excluded from static dependency extraction. This prevents generated imports from being mistaken for hand-authored architecture evidence.
+
+The scanner does not yet establish provenance between generated files and their generators.
+
+## 9. Determinism and resource bounds
+
+For identical repository contents and scanner options, the reference scanner:
+
+- traverses entries lexically;
+- emits repository-relative paths;
+- skips symbolic links;
+- sorts markers, languages, candidates, workspaces, dependencies, and evidence;
+- omits wall-clock timestamps;
+- attaches a revision only when explicitly supplied.
+
+The default scan bound is 50,000 files:
 
 ```bash
 mssp scan . --max-files 10000
 ```
 
-When the bound is reached:
+When reached, `discovery.truncated` is `true`. Consumers MUST NOT treat a truncated scan as a complete inventory.
 
-```json
-{
-  "discovery": {
-    "truncated": true
-  }
-}
-```
+## 10. Security boundary
 
-A truncated scan is still deterministic and schema-valid, but consumers MUST NOT treat it as a complete repository inventory.
+The scanner:
 
-## 9. CLI
+- performs local read-only inspection;
+- does not execute source files, build scripts, package managers, plugins, or Git;
+- does not access the network;
+- skips symbolic links;
+- limits recognized metadata and source-file reads by size;
+- rejects non-positive `maxFiles` values.
+
+## 11. CLI
 
 ```bash
 mssp scan .
@@ -184,28 +223,18 @@ mssp scan . --revision <git-sha> --out repository-scan.json
 
 The output validates against the MSSP Intermediate Model schema.
 
-## 10. Security boundary
+## 12. Current limitations
 
-The scanner:
+The v0.2 scanner does not yet provide:
 
-- performs local read-only file inspection;
-- does not execute source files, build scripts, package managers, or plugins;
-- does not access the network;
-- skips symbolic links to avoid traversal cycles and boundary escape;
-- reads only recognized marker files for metadata extraction;
-- rejects non-positive `maxFiles` values.
-
-## 11. Current limitations
-
-The v0.2 foundation does not yet provide:
-
-- AST import analysis;
+- Tree-sitter or compiler-grade AST import analysis;
+- language-specific alias and build-configuration resolution;
 - runtime dependency inference;
+- automatic MSSP layer classification;
+- candidate-to-module promotion;
 - FMS/code consistency analysis;
 - Git diff impact analysis;
-- automatic MSSP layer classification;
-- `.gitignore` semantics;
-- binary-language detection;
+- complete Git ignore equivalence;
 - generated-source provenance.
 
-These are subsequent Repository Architecture Intelligence slices, not hidden claims of the foundation scanner.
+These are later Repository Architecture Intelligence slices. Static evidence must remain distinguishable from declared architecture and from AI-generated interpretation.
