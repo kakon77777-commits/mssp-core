@@ -25,11 +25,17 @@
 - Added aggregate-boundary exclusion and mandatory low confidence for truncated scans.
 - Added `schemas/classification-suggestions.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
 - Classification reports preserve `autoPromotion: false` and `review-required`; they do not modify candidates, modules, layers, or runtime relations.
+- Added the governed Candidate Review and Promotion Protocol v0.2.
+- Added `mssp review-candidate` with explicit approve, reject, and defer decisions, named reviewer identity, rationale, conditions, source snapshots, and blocked contract drafts.
+- Added `mssp promote-candidate` with blocker recomputation, independent approver separation, module Schema validation, provenance metadata, and overwrite refusal.
+- Promotion does not modify `mssp.yaml`, register a module automatically, create runtime relations, execute repository code, or trust a stored readiness flag.
+- Added `schemas/promotion-review.schema.json`, normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI artifact output.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports the Intermediate Model, repository scan, classification suggestions, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, classification suggestions, promotion review, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
+- Migration: promotion consumers must recompute blockers and require a distinct final approver instead of trusting stored `promotion.status`.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
