@@ -8,16 +8,16 @@ MSSP is a language-agnostic architecture method for understandable, testable, go
 MSSP = (FMS, SCL, SMS, TMS, DMS, Router, Runtime)
 ```
 
-Implemented foundations:
+## Implemented foundations
 
 ```text
 v0.1  architecture contracts and validation
 v0.2  repository intelligence, promotion, drift, and impact
-v0.3  multi-view visualization and five adapters
+v0.3  multi-view visualization and five semantic-export adapters
 v0.4  Router Contract Evaluator
 ```
 
-## Router v0.4
+## Router Contract Evaluator
 
 ```bash
 node dist/cli.js route examples/hello-mssp \
@@ -38,8 +38,8 @@ indeterminate  unsupported or incomplete evidence remains
 The evaluator never silently ranks, executes, activates, registers, or mutates modules.
 
 ```text
-selected               != activated or executed
-permission match       != permission grant
+selected                != activated or executed
+permission match        != permission grant
 compatibility satisfied != runtime compatibility proof
 ```
 
