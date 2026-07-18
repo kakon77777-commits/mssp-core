@@ -17,7 +17,7 @@ The Draft PR is validated from a clean checkout of the pull-request merge ref.
 ```text
 npm ci --no-audit --no-fund                         PASS
 npm run typecheck                                   PASS
-npm test                                            PASS — 7 test files, 21 tests
+npm test                                            PASS — 7 test files, 22 tests
 npm run build                                       PASS
 mssp lint examples/hello-mssp                       PASS
 mssp lint examples/hello-mssp --json                PASS
@@ -29,7 +29,7 @@ mssp graph examples/hello-mssp                      PASS
 validation artifact upload                         PASS
 ```
 
-The dependency-aware scanner validation run was GitHub Actions run `29628776650` on head commit `5896df43ba64bc7b57272540bc1febce0306cf6c`.
+The final dependency-aware scanner validation run was GitHub Actions run `29628845328` on head commit `9372dd260b6f686b9a9e97b9a67f5fee2fb76a89`.
 
 The validated artifact contains:
 
@@ -41,8 +41,8 @@ intermediate-model.json
 repository-scan.json
 ```
 
-Artifact ID: `8424758621`  
-Artifact digest: `sha256:8f740bea7a44529e0c9ad6a3f95465fe1fc7ab4021fefd672aa153784059aef5`
+Artifact ID: `8424778605`  
+Artifact digest: `sha256:f7fd8dae894f76e49f154fca60c93cdcc713ec5555aa647fff657f5da0f61e62`
 
 ## Protocol and model conformance
 
@@ -62,8 +62,11 @@ Artifact digest: `sha256:8f740bea7a44529e0c9ad6a3f95465fe1fc7ab4021fefd672aa1537
 - npm workspace patterns resolve declared member candidates.
 - Workspace evidence strengthens structural confidence without adding an MSSP layer.
 - JavaScript/TypeScript relative and workspace imports produce deterministic dependency evidence.
+- Explicit JavaScript `.js`, `.mjs`, and `.cjs` paths may resolve to TypeScript `.ts` or `.tsx` source files.
 - Python external imports produce external dependency evidence.
-- Internal, workspace, and external scopes remain distinguishable.
+- Go extraction reads import statements and import blocks without treating ordinary string literals as imports.
+- Rust `crate::`, `self::`, and `super::` roots remain local-looking evidence rather than external-package claims.
+- Internal, cross-boundary, workspace, external, and unresolved scopes remain distinguishable.
 - Generated source paths are recorded but excluded from static import evidence.
 - A bounded scan records `discovery.truncated: true` rather than claiming completeness.
 
@@ -76,6 +79,7 @@ Artifact digest: `sha256:8f740bea7a44529e0c9ad6a3f95465fe1fc7ab4021fefd672aa1537
 - Invalid scanner `maxFiles` values are rejected.
 - Dependency, build, cache, and editor output directories are excluded from scanner inventory.
 - Scanner candidates contain no MSSP `layer` before classification review.
+- Static source references do not become declared runtime `relations` automatically.
 
 ## Package portability
 
