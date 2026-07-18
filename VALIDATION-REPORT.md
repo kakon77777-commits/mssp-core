@@ -18,10 +18,11 @@ The implementation is validated from clean Draft PR merge-ref checkouts with com
 ```text
 npm ci --no-audit --no-fund                                      PASS
 npm run typecheck                                                PASS
-npm test                                                         PASS — 12 test files, 48 tests
+npm test                                                         PASS — 13 test files, 56 tests
 npm run build                                                    PASS
 mssp adapters --json --out adapter-descriptors.json              PASS
 mssp adapt eml examples/eml-adapter/semantic-export.json ...     PASS
+mssp adapt python examples/python-adapter/semantic-export.json ... PASS
 mssp lint examples/hello-mssp                                    PASS
 mssp lint examples/hello-mssp --json                             PASS
 mssp island examples/hello-mssp                                  PASS
@@ -53,7 +54,8 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Adapter descriptors validate against `schemas/adapter-descriptor.schema.json`.
 - Adapter conformance reports validate against `schemas/adapter-conformance.schema.json`.
 - EML semantic exports validate against `schemas/eml-adapter-input.schema.json`.
-- EML-adapted output validates against `schemas/intermediate-model.schema.json`.
+- Python semantic exports validate against `schemas/python-adapter-input.schema.json`.
+- EML- and Python-adapted outputs validate against `schemas/intermediate-model.schema.json`.
 - Manifest models emit declared `modules` and an empty `candidates` array.
 - Scanner models emit unclassified `candidates`, discovery evidence, and no invented MSSP layer assignments.
 - Scanner static dependencies remain in `discovery.dependencies`; normative `relations` remain empty.
@@ -63,7 +65,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Impact reports preserve `mode: static-conservative`, `semanticCompatibility: false`, `autoVersionBump: false`, and `autoMutation: false`.
 - Visualization Models preserve `readOnly: true` and `autoMutation: false`.
 - Adapter descriptors preserve `deterministic: true`, `readOnly: true`, `noExecution: true`, `noNetwork: true`, `autoPromotion: false`, and `autoMutation: false`.
-- Model, scanner, classifier, fixed-input review, drift, impact, visualization, and EML adapter output are deterministic for identical inputs and options.
+- Model, scanner, classifier, fixed-input review, drift, impact, visualization, EML adapter, and Python adapter output are deterministic for identical inputs and options.
 - Source and changed-file references are portable and project-relative where applicable.
 
 ## Verified scanner and classification behavior
@@ -132,23 +134,32 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - Source links preserve repository-relative source identity.
 - Visualization cannot classify, promote, approve, register, execute, or mutate the architecture it displays.
 
-## Verified Adapter Contract and EML adapter behavior
+## Verified Adapter Contract, Registry, EML, and Python behavior
 
-- The EML adapter descriptor is schema-valid and advertises fixed read-only, offline, and non-executing invariants.
-- `mssp adapters --json` emits the machine-readable descriptor through the public CLI.
+- EML and Python adapter descriptors are schema-valid and advertise fixed read-only, offline, and non-executing invariants.
+- The registry emits descriptors in stable adapter-ID order and resolves `eml`, `python`, and `py` aliases without ecosystem-specific CLI branches.
+- `mssp adapters --json` emits both machine-readable descriptors through the public CLI.
 - `mssp adapt eml` consumes only a versioned `eml-mssp-export` JSON document.
-- The adapter does not parse raw `.eml`, execute EML, resolve imports, read source-URI targets, invoke Git, invoke a package manager, or access the network.
-- A complete explicit EML `declaration` maps to one Intermediate Module with adapter provenance.
-- An EML symbol without a complete declaration remains an `unclassified` candidate even when `symbolKind` is `module`.
+- `mssp adapt python` consumes only a versioned `python-mssp-export` JSON document.
+- Complete explicit declarations map to Intermediate Modules with adapter provenance.
+- EML symbols and Python components without complete declarations remain `unclassified` candidates even when source metadata describes them as modules, packages, plugins, commands, or services.
+- Python import paths and entry points remain metadata and do not grant architecture authority.
 - Incomplete declarations are rejected rather than completed heuristically.
-- Duplicate EML symbol, layer, and policy identities are rejected.
+- Duplicate EML symbol identities are rejected.
+- Duplicate Python component IDs and qualified names are rejected.
+- Duplicate layer and policy identities are rejected.
 - Normative `requires`, `affects`, and `affected-by` relations are emitted only from complete explicit declarations.
+- Python imports, distribution dependencies, entry points, decorators, names, and source proximity do not become normative relations.
 - Unknown relation targets remain visible rather than being deleted.
-- Every emitted source uses `kind: adapter`, identifies `eml-mssp-export`, and uses a portable URI.
+- Every emitted source uses `kind: adapter`, identifies the producing adapter, and uses a portable URI.
+- Absolute filesystem source paths are rejected.
 - A supplied revision is copied to adapter-produced source references.
 - Adapter output uses stable lexical ordering and does not mutate its input object.
+- The shared Declarative Adapter Builder preserves common module, candidate, relation, provenance, and sorting rules while each ecosystem retains its own input Schema and metadata mapping.
 - Conformance evaluation detects invalid descriptor/output schemas, adapter identity mismatch, duplicate or overlapping identities, unstable ordering, and invalid source provenance.
-- Adapter output represents source declarations only; it does not prove SCL approval, compatibility, registration, or deployment readiness.
+- The EML adapter does not parse raw `.eml`, execute EML, resolve imports, read source-URI targets, invoke Git, invoke a package manager, or access the network.
+- The Python adapter does not import or execute Python, invoke an interpreter, inspect virtual environments, run package managers or build backends, resolve imports, read source-URI targets, invoke Git, or access the network.
+- Adapter output represents source declarations only; it does not prove SCL approval, compatibility, registration, runtime loading, or deployment readiness.
 
 ## Verified architecture boundaries
 
@@ -157,7 +168,7 @@ Implementation behavior includes real temporary-Git tests for addition and delet
 - SMS depending on TMS is rejected.
 - Scanner and adapter candidates contain no layer before governed review.
 - Static source references do not become runtime relations automatically.
-- Adapter heuristics do not become module declarations.
+- Source-language metadata and adapter heuristics do not become module declarations.
 - Classification review and final promotion approval are separate roles.
 - Drift findings cannot mutate architecture.
 - Impact findings cannot approve, version, or mutate changes.
@@ -185,5 +196,6 @@ The package lock contains public `registry.npmjs.org` URLs and no environment-in
 - No runtime DMS event transport.
 - No graph editor, architecture mutation UI, large-graph virtualization, or multi-view layout refinement.
 - No direct raw-EML parser integration or live EML toolchain bridge; the current adapter consumes a versioned semantic export.
-- No Python, Rust, Godot, or Agent Skill adapters.
+- No direct Python AST, packaging-tool, interpreter, or live-environment integration; the current adapter consumes a versioned semantic export.
+- No Rust, Godot, or Agent Skill adapters.
 - No AISMBI/MCL implementation.
