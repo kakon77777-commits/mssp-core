@@ -27,6 +27,8 @@ MSSP-VT is represented by each module's `version`, `compatibility`, and `changeI
 ## Implemented commands
 
 - `mssp init`: create an adoption-ready project skeleton.
+- `mssp adapters`: list machine-readable adapter descriptors.
+- `mssp adapt eml`: translate a versioned EML semantic export into the Intermediate Model.
 - `mssp lint`: validate schemas, layer placement, dependency direction, FMS purity, cycles, entries, and MSSP-VT references.
 - `mssp island`: verify TMS island-test obligations.
 - `mssp model`: export the deterministic, language-neutral Intermediate Model.
@@ -40,7 +42,7 @@ MSSP-VT is represented by each module's `version`, `compatibility`, and `changeI
 - `mssp graph`: generate Mermaid or JSON architecture graphs from the Intermediate Model.
 - `mssp explain`: print a concise architecture inventory.
 
-The scanner does not declare architecture. The classifier does not approve candidates. Review approval does not complete a contract. Manifest emission does not register a module. Drift and impact reports do not mutate or approve the architecture they describe. Visualization does not classify or promote what it displays.
+The scanner does not declare architecture. The classifier does not approve candidates. Review approval does not complete a contract. Manifest emission does not register a module. Drift and impact reports do not mutate or approve the architecture they describe. Visualization does not classify or promote what it displays. Adapters translate explicit exports; they do not execute source systems or auto-promote undeclared entities.
 
 ## Five-minute quick start
 
@@ -48,6 +50,10 @@ The scanner does not declare architecture. The classifier does not approve candi
 npm install
 npm run build
 
+node dist/cli.js adapters --json --out /tmp/adapter-descriptors.json
+node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
+  --revision HEAD \
+  --out /tmp/eml-intermediate-model.json
 node dist/cli.js init /tmp/my-mssp-project
 node dist/cli.js lint /tmp/my-mssp-project
 node dist/cli.js model /tmp/my-mssp-project --out /tmp/mssp-model.json
@@ -80,6 +86,8 @@ node dist/cli.js graph /tmp/my-mssp-project \
 During repository development:
 
 ```bash
+npm run mssp -- adapters --json
+npm run mssp -- adapt eml examples/eml-adapter/semantic-export.json --revision HEAD
 npm run mssp -- lint examples/hello-mssp
 npm run mssp -- model examples/hello-mssp --revision HEAD
 npm run mssp -- scan . --revision HEAD --max-files 10000
@@ -101,6 +109,8 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 - [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
 - [MSSP Git Diff Impact Analysis v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
 - [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
+- [MSSP Adapter Contract v0.3](spec/MSSP-ADAPTER-CONTRACT-v0.3.md)
+- [MSSP EML Adapter v0.3](spec/MSSP-EML-ADAPTER-v0.3.md)
 
 JSON diagnostic consumers should read `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
@@ -282,6 +292,43 @@ Displaying a candidate does not approve it. Displaying a relation does not prove
 
 Traditional Chinese guide: [Visualization](docs/visualization.zh-TW.md).
 
+## Adapter interoperability and EML
+
+```text
+External parser / editor / compiler
+              ↓ versioned semantic export
+         MSSP Adapter
+              ↓ deterministic translation
+      MSSP Intermediate Model
+```
+
+Every conforming adapter publishes a machine-readable descriptor and preserves:
+
+```json
+{
+  "deterministic": true,
+  "readOnly": true,
+  "noExecution": true,
+  "noNetwork": true,
+  "autoPromotion": false,
+  "autoMutation": false
+}
+```
+
+The first reference adapter consumes `eml-mssp-export` v0.3 JSON:
+
+```bash
+node dist/cli.js adapt eml examples/eml-adapter/semantic-export.json \
+  --revision HEAD \
+  --out eml-intermediate-model.json
+```
+
+It does not parse raw `.eml`, execute EML, resolve imports, or modify the project. A complete explicit EML `declaration` maps to a module representation. A symbol without that declaration remains an `unclassified` candidate even when its EML `symbolKind` is `module`.
+
+Adapter output represents source declarations; it does not prove SCL approval, compatibility, registration, or deployment readiness.
+
+Traditional Chinese guide: [Adapters and EML](docs/adapters.zh-TW.md).
+
 ## Module contract example
 
 ```yaml
@@ -340,14 +387,15 @@ MSSP = architecture organization, capability placement, subset governance
 EML  = semantic expression, compression, executable language tooling
 ```
 
-A future `@eml/mssp-adapter` may translate EML AST and trace data into the Intermediate Model and Diagnostic Protocol. MSSP Core remains independent from the EML parser, runtime, editor, and emitters.
+The `eml-mssp-export` reference adapter translates an explicit EML semantic export into the Intermediate Model without importing the EML parser, runtime, editor, or emitters. A future EML toolchain may produce that export directly; raw EML parsing remains outside MSSP Core.
 
 ## Repository map
 
 ```text
 schemas/                 Normative schemas
 src/                     TypeScript core and CLI
-examples/hello-mssp/     Complete reference adoption
+examples/hello-mssp/     Complete MSSP reference adoption
+examples/eml-adapter/    EML semantic-export reference fixture
 spec/                    Normative and interoperability specifications
 docs/                    Adoption, protocol, roadmap, and research guides
 .github/                  CI and architecture-review workflow
@@ -357,9 +405,9 @@ docs/                    Adoption, protocol, roadmap, and research guides
 
 `v0.1.0` is the architecture-contract MVP. The principal v0.2 repository-intelligence vertical slices are implemented: diagnostics, Intermediate Model, scanner, static dependency evidence, advisory classification, governed promotion, structural drift, and Git diff impact analysis.
 
-The v0.3 visualization foundation is implemented: a deterministic Visualization Model, source navigation, self-contained interactive HTML, public APIs, Schema, tests, and CI artifacts. EML, Python, Rust, Godot, and Agent Skill adapters remain future work.
+The v0.3 visualization foundation, Adapter Contract, and first EML reference adapter are implemented. The EML adapter includes machine-readable descriptor and input schemas, conformance evaluation, public APIs, CLI execution, a reference fixture, tests, specifications, and CI artifacts.
 
-Compiler-grade AST dependency extraction, complete language alias resolution, full Git-ignore equivalence, generated-source provenance, patch-hunk or symbol-level impact analysis, and automatic semantic-version selection remain outside the current reference implementation.
+Python, Rust, Godot, and Agent Skill adapters remain future work. Compiler-grade AST dependency extraction, complete language alias resolution, full Git-ignore equivalence, generated-source provenance, patch-hunk or symbol-level impact analysis, and automatic semantic-version selection remain outside the current reference implementation.
 
 ## License
 
