@@ -7,6 +7,7 @@ export * from "./classification-report.js";
 export * from "./promotion.js";
 export * from "./drift.js";
 export * from "./impact.js";
+export * from "./visualization.js";
 export * from "./io.js";
 export * from "./validate.js";
 export * from "./graph.js";
