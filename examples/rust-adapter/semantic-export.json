@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "0.3",
+  "kind": "rust-mssp-export",
+  "project": {
+    "id": "example.rust-system",
+    "name": "Example Rust System",
+    "version": "1.5.0",
+    "description": "Reference Rust semantic export for the MSSP adapter.",
+    "sourceUri": "Cargo.toml",
+    "workspaceName": "mssp-rust-example",
+    "cargoResolver": "2",
+    "rustVersion": "1.85",
+    "edition": "2024",
+    "toolchainChannel": "stable",
+    "metadata": {
+      "exporter": "rust-toolchain-fixture"
+    }
+  },
+  "layers": [
+    {
+      "id": "SMS",
+      "path": "crates/document-core",
+      "sourceUri": "Cargo.toml"
+    },
+    {
+      "id": "TMS",
+      "path": "crates/markdown-plugin",
+      "sourceUri": "Cargo.toml"
+    }
+  ],
+  "policies": [
+    {
+      "id": "rust.unsafe-code",
+      "value": "explicit-contract-only",
+      "sourceUri": "Cargo.toml"
+    }
+  ],
+  "components": [
+    {
+      "id": "core.document",
+      "name": "Document Core",
+      "rustKind": "library",
+      "cargoIdentity": "workspace:mssp-rust-example/package:document-core/target:lib",
+      "sourceUri": "crates/document-core/src/lib.rs",
+      "packageName": "document-core",
+      "crateName": "document_core",
+      "targetName": "document_core",
+      "crateRoot": "crates/document-core/src/lib.rs",
+      "edition": "2024",
+      "crateTypes": ["rlib"],
+      "features": ["default", "serde"],
+      "targetTriples": ["x86_64-unknown-linux-gnu"],
+      "purpose": "Provide the stable document capability.",
+      "declaration": {
+        "version": "1.3.0",
+        "layer": "SMS",
+        "purpose": "Provide the stable document capability.",
+        "entry": "document_core::create_document",
+        "activation": [],
+        "inputs": ["document-request"],
+        "outputs": ["document"],
+        "requirements": {
+          "modules": [],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["allocate-document"],
+          "mayNot": ["network", "unsafe-code"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["invalid-document-request"],
+        "validation": ["document has a stable identifier"],
+        "tests": ["creates a minimal document"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {}
+        },
+        "changeImpact": {
+          "affects": ["plugin.markdown"],
+          "affectedBy": [],
+          "notes": ["Public document shape changes require plugin review."]
+        },
+        "maintainer": "core-team"
+      }
+    },
+    {
+      "id": "plugin.markdown",
+      "name": "Markdown Plugin",
+      "rustKind": "plugin",
+      "cargoIdentity": "workspace:mssp-rust-example/package:markdown-plugin/target:lib",
+      "sourceUri": "crates/markdown-plugin/src/lib.rs",
+      "packageName": "markdown-plugin",
+      "crateName": "markdown_plugin",
+      "targetName": "markdown_plugin",
+      "crateRoot": "crates/markdown-plugin/src/lib.rs",
+      "edition": "2024",
+      "crateTypes": ["cdylib", "rlib"],
+      "features": ["default"],
+      "targetTriples": ["x86_64-unknown-linux-gnu"],
+      "purpose": "Render documents as Markdown.",
+      "declaration": {
+        "version": "0.9.0",
+        "layer": "TMS",
+        "purpose": "Render documents as Markdown.",
+        "entry": "markdown_plugin::render",
+        "activation": ["request.output == markdown"],
+        "inputs": ["document"],
+        "outputs": ["markdown-text"],
+        "requirements": {
+          "modules": ["core.document"],
+          "tools": [],
+          "data": []
+        },
+        "permissions": {
+          "may": ["read-document"],
+          "mayNot": ["network", "unsafe-code", "write-source"]
+        },
+        "riskLevel": "L1",
+        "failureModes": ["unsupported-document-node"],
+        "validation": ["output is UTF-8 Markdown"],
+        "tests": ["fails safely on unsupported nodes", "renders a minimal document"],
+        "compatibility": {
+          "mssp": ">=0.1 <0.4",
+          "modules": {
+            "core.document": ">=1 <2"
+          }
+        },
+        "changeImpact": {
+          "affects": [],
+          "affectedBy": ["core.document"],
+          "notes": []
+        },
+        "maintainer": "plugin-team"
+      }
+    },
+    {
+      "id": "experimental.preview",
+      "name": "Experimental Preview Service",
+      "rustKind": "service",
+      "cargoIdentity": "workspace:mssp-rust-example/package:preview-service/target:bin:previewd",
+      "sourceUri": "crates/preview-service/src/main.rs",
+      "packageName": "preview-service",
+      "crateName": "preview_service",
+      "targetName": "previewd",
+      "crateRoot": "crates/preview-service/src/main.rs",
+      "edition": "2024",
+      "crateTypes": ["bin"],
+      "features": ["experimental"],
+      "targetTriples": ["x86_64-unknown-linux-gnu"],
+      "purpose": "Prototype an optional preview service without granting architecture authority.",
+      "candidate": {
+        "path": "crates/preview-service",
+        "boundaryKind": "package",
+        "boundaryConfidence": 0.66,
+        "fileCount": 3,
+        "sourceFileCount": 2,
+        "languages": ["rust"]
+      }
+    }
+  ]
+}
