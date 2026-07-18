@@ -36,10 +36,11 @@ MSSP-VT is represented by each module's `version`, `compatibility`, and `changeI
 - `mssp promote-candidate`: emit a completed module manifest after independent final approval.
 - `mssp drift`: compare canonical FMS records, manifests, and bounded source ownership.
 - `mssp impact`: map an explicit Git comparison to direct and transitive MSSP-VT review impact.
+- `mssp viz`: generate a read-only Visualization Model or self-contained interactive HTML architecture view.
 - `mssp graph`: generate Mermaid or JSON architecture graphs from the Intermediate Model.
 - `mssp explain`: print a concise architecture inventory.
 
-The scanner does not declare architecture. The classifier does not approve candidates. Review approval does not complete a contract. Manifest emission does not register a module. Drift and impact reports do not mutate or approve the architecture they describe.
+The scanner does not declare architecture. The classifier does not approve candidates. Review approval does not complete a contract. Manifest emission does not register a module. Drift and impact reports do not mutate or approve the architecture they describe. Visualization does not classify or promote what it displays.
 
 ## Five-minute quick start
 
@@ -66,6 +67,10 @@ node dist/cli.js impact /tmp/my-mssp-project \
   --head HEAD \
   --revision HEAD \
   --out /tmp/git-diff-impact.json
+node dist/cli.js viz /tmp/my-mssp-project \
+  --revision HEAD \
+  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
+  --out /tmp/architecture.html
 node dist/cli.js island /tmp/my-mssp-project
 node dist/cli.js graph /tmp/my-mssp-project \
   --format mermaid \
@@ -81,6 +86,7 @@ npm run mssp -- scan . --revision HEAD --max-files 10000
 npm run mssp -- classify . --revision HEAD --max-files 10000
 npm run mssp -- drift examples/hello-mssp --revision HEAD --max-files 10000
 npm run mssp -- impact examples/hello-mssp --base HEAD^1 --head HEAD --revision HEAD
+npm run mssp -- viz examples/hello-mssp --format html --revision HEAD --out architecture.html
 npm run mssp -- island examples/hello-mssp
 npm run mssp -- graph examples/hello-mssp --format mermaid
 ```
@@ -94,6 +100,7 @@ npm run mssp -- graph examples/hello-mssp --format mermaid
 - [MSSP Candidate Review and Promotion Protocol v0.2](spec/MSSP-CANDIDATE-PROMOTION-v0.2.md)
 - [MSSP Architecture Drift Report v0.2](spec/MSSP-ARCHITECTURE-DRIFT-v0.2.md)
 - [MSSP Git Diff Impact Analysis v0.2](spec/MSSP-GIT-DIFF-IMPACT-v0.2.md)
+- [MSSP Visualization Model v0.3](spec/MSSP-VISUALIZATION-MODEL-v0.3.md)
 
 JSON diagnostic consumers should read `diagnostics[].code`; transitional v0.1 identifiers remain in `diagnostics[].legacyCode`.
 
@@ -230,6 +237,51 @@ Every report preserves:
 
 Traditional Chinese guide: [Git diff impact](docs/git-diff-impact.zh-TW.md).
 
+## Interactive architecture visualization
+
+```text
+Intermediate Model
+       ↓ deterministic read-only projection
+Visualization Model
+       ↓ self-contained renderer
+Searchable layered architecture view
+```
+
+Run:
+
+```bash
+node dist/cli.js viz examples/hello-mssp \
+  --format html \
+  --revision HEAD \
+  --source-base https://github.com/OWNER/REPO/blob/BRANCH \
+  --out architecture.html
+```
+
+The HTML output contains its CSS, JavaScript, and model payload in one file. It loads no CDN, external font, analytics, or runtime library. It supports layer filters, search, node inspection, relation drawing, and optional source links.
+
+The Visualization Model distinguishes:
+
+```text
+module     → declared MSSP layer
+candidate  → UNCLASSIFIED
+reference  → UNRESOLVED
+```
+
+It preserves:
+
+```json
+{
+  "invariants": {
+    "readOnly": true,
+    "autoMutation": false
+  }
+}
+```
+
+Displaying a candidate does not approve it. Displaying a relation does not prove runtime execution or compatibility.
+
+Traditional Chinese guide: [Visualization](docs/visualization.zh-TW.md).
+
 ## Module contract example
 
 ```yaml
@@ -276,7 +328,7 @@ MSSP YAML / Repository Scanner / EML / Python / Rust / Godot
                               ↓
                   MSSP Intermediate Model
                               ↓
-Validator / Graph / IDE / Agent / Drift / Impact Analysis
+Validator / Graph / Viz / IDE / Agent / Drift / Impact Analysis
 ```
 
 The model separates approved `modules` from unclassified `candidates`, and normative `relations` from scanner-derived `discovery.dependencies`.
@@ -304,6 +356,8 @@ docs/                    Adoption, protocol, roadmap, and research guides
 ## Status
 
 `v0.1.0` is the architecture-contract MVP. The principal v0.2 repository-intelligence vertical slices are implemented: diagnostics, Intermediate Model, scanner, static dependency evidence, advisory classification, governed promotion, structural drift, and Git diff impact analysis.
+
+The v0.3 visualization foundation is implemented: a deterministic Visualization Model, source navigation, self-contained interactive HTML, public APIs, Schema, tests, and CI artifacts. EML, Python, Rust, Godot, and Agent Skill adapters remain future work.
 
 Compiler-grade AST dependency extraction, complete language alias resolution, full Git-ignore equivalence, generated-source provenance, patch-hunk or symbol-level impact analysis, and automatic semantic-version selection remain outside the current reference implementation.
 
