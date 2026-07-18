@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.4",
+  "kind": "mssp-router-request",
+  "requestId": "uppercase-demo",
+  "intent": "Transform text to uppercase.",
+  "facts": {
+    "request.transform": "uppercase"
+  },
+  "msspVersion": "0.1.0",
+  "availableInputs": [
+    "text"
+  ],
+  "requiredOutputs": [
+    "text"
+  ],
+  "availableModules": [
+    "core.echo"
+  ],
+  "availableTools": [],
+  "availableData": [],
+  "requestedPermissions": [
+    "read-input"
+  ],
+  "maxRiskLevel": "L0",
+  "targetModules": [
+    "plugin.uppercase"
+  ]
+}
