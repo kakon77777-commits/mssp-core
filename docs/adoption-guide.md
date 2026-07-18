@@ -49,6 +49,27 @@ A clean report means the observed structural contracts are mutually consistent. 
 
 Treat `indeterminate` findings as unresolved evidence, not as success. Increase the file bound or make FMS records machine-readable before approving an architecture claim.
 
+## Review every Git change through MSSP-VT
+
+Run impact analysis against an explicit Git comparison:
+
+```bash
+mssp impact . --base origin/main --head HEAD --revision HEAD --out git-diff-impact.json
+```
+
+The impact report maps changed paths to direct module owners, then propagates review scope through:
+
+- `changeImpact.affects`;
+- `changeImpact.affectedBy`;
+- `requires.modules`;
+- `compatibility.modules`.
+
+Review requirements may include FMS, SCL, module contracts, versions, compatibility, tests, and TMS island evidence.
+
+`impact-detected` does not mean incompatibility. It means the named modules and reviews are in scope. `indeterminate` means ownership, relation targets, moved declarations, or generated-source provenance are incomplete.
+
+The analyzer never chooses patch, minor, or major version increments. Record that decision separately with contract and test evidence.
+
 ## Decide SMS conservatively
 
 A module belongs in SMS only when removing it prevents every valid system closure. "Important", "large", and "frequently used" do not automatically mean SMS.
@@ -105,4 +126,4 @@ DMS outputs should include:
 
 ## Pull-request discipline
 
-Architecture-changing PRs update FMS. Compatibility-changing PRs update MSSP-VT. New TMS modules add island evidence. Candidate promotions retain review and approval provenance. CI runs `mssp lint`, `mssp island`, repository scan, classification, candidate review validation, and `mssp drift`.
+Architecture-changing PRs update FMS. Compatibility-changing PRs update MSSP-VT. New TMS modules add island evidence. Candidate promotions retain review and approval provenance. CI runs `mssp lint`, `mssp island`, repository scan, classification, candidate review validation, `mssp drift`, and `mssp impact`.
