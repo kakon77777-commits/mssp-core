@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — v0.2 intelligence and v0.3 visualization/adapters groundwork
+## Unreleased — v0.2 intelligence, v0.3 visualization/adapters, and v0.4 router governance groundwork
 
 - Added MSSP Diagnostic Protocol v0.2 envelopes for `lint --json` and `island --json`.
 - Added stable public `MSSP_*_NNN` diagnostic codes while preserving v0.1 identifiers in `legacyCode`.
@@ -55,6 +55,14 @@
 - Large-graph rendering keeps the complete model embedded while bounding DOM nodes and SVG paths; hidden data is not treated as absent architecture.
 - Visualization preserves fixed `readOnly: true` and `autoMutation: false` invariants and never classifies or promotes candidates.
 - Added `schemas/visualization.schema.json`, expanded normative specification, Traditional Chinese guide, public TypeScript APIs, tests, and CI JSON/HTML artifacts.
+- Added MSSP Router Contract Evaluator v0.4 and the `mssp route` command.
+- Added versioned `mssp-router-request` and `mssp-router-evaluation-report` documents with independent JSON Schemas.
+- Added declared-TMS-only candidate evaluation across activation conditions, inputs, outputs, module dependencies, tools, data, permissions, risk ceilings, MSSP compatibility, and required-module compatibility.
+- Added the conservative `mssp-exact-condition-v0.4` scalar condition subset and `numeric-comparator-range-v0.4` version subset; unsupported syntax remains indeterminate rather than guessed.
+- Added explicit `selected`, `ambiguous`, `no-match`, and `indeterminate` outcomes with no silent ranking or tie-breaking.
+- Added stable `MSSP_ROUTE_001` through `MSSP_ROUTE_015` reason codes.
+- Router reports preserve `deterministic: true`, `readOnly: true`, `noExecution: true`, `noNetwork: true`, `autoActivation: false`, `autoMutation: false`, and `runtimeCompatibilityProof: false`.
+- Added Router normative specification, Traditional Chinese guide, public TypeScript APIs, reference request fixture, tests, and CI artifact output.
 - Added MSSP Adapter Contract v0.3 with machine-readable adapter descriptors and conformance reports.
 - Added mandatory `deterministic`, `readOnly`, `noExecution`, `noNetwork`, `autoPromotion: false`, and `autoMutation: false` adapter invariants.
 - Added portable adapter provenance checks, stable ordering checks, duplicate-identity checks, module/candidate overlap checks, and Intermediate Model validation.
@@ -82,7 +90,7 @@
 - The Agent Skill adapter does not invoke agents, models, prompts, skills, tools, workflows, evaluators, guardrails, handoffs, memory, MCP servers, transports, browsers, shells, package managers, credentials, network services, or source-URI targets; it does not mutate source projects or register emitted modules.
 - Added `schemas/adapter-descriptor.schema.json`, `schemas/adapter-conformance.schema.json`, `schemas/eml-adapter-input.schema.json`, `schemas/python-adapter-input.schema.json`, `schemas/rust-adapter-input.schema.json`, `schemas/godot-adapter-input.schema.json`, and `schemas/agent-skill-adapter-input.schema.json`, plus normative specifications, Traditional Chinese guides, reference fixtures, tests, and CI artifacts.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI exports adapter descriptors, Agent Skill-, EML-, Godot-, Python-, and Rust-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, multi-view visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
+- CI exports adapter descriptors, five ecosystem-adapted Intermediate Models, the manifest Intermediate Model, repository scan, classification suggestions, promotion review, architecture drift report, Git diff impact report, Router evaluation report, multi-view visualization JSON/HTML, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
 - Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: classification consumers must treat `supportScore` as heuristic support rather than probability and must not auto-promote suggestions.
@@ -90,6 +98,7 @@
 - Migration: drift consumers must not interpret `consistent` as semantic or runtime equivalence; truncated or unparsable evidence remains `indeterminate`.
 - Migration: impact consumers must distinguish `impact-detected` from incompatibility and treat version selection as an independent governed decision.
 - Migration: visualization consumers must accept `projections` and `scale`, keep candidates unclassified, preserve unresolved references, and treat not-yet-materialized nodes and edges as present in the complete model.
+- Migration: Router consumers must distinguish static eligibility from activation, execution, SCL approval, permission grant, and runtime compatibility proof; ambiguous results must not be resolved through hidden ordering.
 - Migration: adapter consumers must treat explicit exported declarations as source representations rather than proof of SCL approval or project registration.
 - Migration: Python metadata consumers must not treat package kind, import path, distribution metadata, or entry points as MSSP classification, activation approval, or runtime loading evidence.
 - Migration: Rust metadata consumers must not treat workspace membership, package/crate kind, Cargo target, feature, edition, or toolchain metadata as MSSP classification, activation approval, or runtime loading evidence.
