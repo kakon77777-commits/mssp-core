@@ -9,14 +9,20 @@
 - Human-readable CLI output now displays stable public diagnostic codes.
 - Added MSSP Intermediate Model v0.2 as the deterministic, language-neutral exchange representation for manifests, scanners, adapters, IDEs, and agents.
 - Added `mssp model`, portable source references, normalized modules, explicit dependency and MSSP-VT relations, evidence records, JSON Schema, specification, and conformance tests.
-- Added explicit `candidates` and optional `discovery` data to the Intermediate Model so repository discovery does not masquerade as approved MSSP modules.
-- Added the deterministic Repository Scanner foundation through `mssp scan`.
+- Added explicit `candidates` and scanner `discovery` data so repository discovery does not masquerade as approved MSSP modules.
+- Added the deterministic Repository Scanner through `mssp scan`.
 - Added bounded file inventory, source-language statistics, common ecosystem marker detection, structural candidate discovery, and evidence-backed boundary confidence.
-- Scanner candidates remain `unclassified`, contain no MSSP layer, and require a later review or declaration step before promotion to `modules`.
-- Added Repository Scanner specification, Traditional Chinese guide, conformance tests, and CI artifact output.
+- Added root and nested `.gitignore` static evaluation with recorded ignore sources and counts.
+- Added npm, pnpm, and Cargo workspace discovery and workspace-backed boundary evidence.
+- Added static source-reference extraction for JavaScript/TypeScript, Python, Go, Rust, and GDScript.
+- Added `internal`, `cross-boundary`, `workspace`, `external`, and `unresolved` dependency scopes under `discovery.dependencies`.
+- Added conservative generated-source recognition; generated files remain in inventory but are excluded from static dependency evidence.
+- Scanner dependencies remain separate from normative `relations`; candidates remain `unclassified` and contain no MSSP layer.
+- Added Repository Scanner and Intermediate Model specifications, Traditional Chinese guides, conformance tests, and CI artifact output.
 - Refactored architecture graph generation to consume the Intermediate Model instead of reading manifest structures directly.
-- CI now exports the Intermediate Model, repository scan, diagnostics, island report, and architecture graph artifacts.
+- CI exports the Intermediate Model, repository scan, diagnostics, island report, and architecture graph artifacts.
 - Migration: Intermediate Model v0.2 consumers must accept the required top-level `candidates` array; manifest-produced models emit an empty array.
+- Migration: scanner consumers should treat `discovery.dependencies` as static evidence, not declared runtime dependencies.
 - Migration: JSON diagnostic consumers should read `diagnostics[].code`; the previous internal identifier remains available as `diagnostics[].legacyCode`.
 
 ## 0.1.0 — 2026-07-18
