@@ -30,6 +30,7 @@ describe("Python Adapter v0.3", () => {
     expect(listAdapterDescriptors().map((descriptor) => descriptor.id)).toEqual([
       "eml-mssp-export",
       "python-mssp-export",
+      "rust-mssp-export",
     ]);
     expect(resolveRegisteredAdapter("python")?.descriptor.id).toBe("python-mssp-export");
     expect(resolveRegisteredAdapter("py")?.descriptor.id).toBe("python-mssp-export");
