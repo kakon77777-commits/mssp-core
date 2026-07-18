@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { dirname, extname, join, posix, relative } from "node:path";
+import { extname, join, posix, relative } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type {
   IntermediateCandidate,
@@ -126,7 +126,7 @@ function compileIgnoreRule(basePath: string, rawPattern: string): IgnoreRule | u
   const base = basePath === "." ? "" : `${escapeRegex(basePath)}/`;
   const hasSlash = pattern.includes("/");
   const prefix = anchored || hasSlash ? base : `${base}(?:.*/)?`;
-  const suffix = directoryOnly || !pattern.includes(".") ? "(?:/.*)?" : "";
+  const suffix = directoryOnly ? "(?:/.*)?" : "";
   return {
     negative,
     regex: new RegExp(`^${prefix}${globBody(pattern)}${suffix}$`),
@@ -203,7 +203,9 @@ function wildcardRegex(pattern: string): RegExp {
 function parseQuotedArray(text: string, key: string): string[] {
   const match = new RegExp(`${key}\\s*=\\s*\\[([\\s\\S]*?)\\]`, "m").exec(text);
   if (!match?.[1]) return [];
-  return [...match[1].matchAll(/["']([^"']+)["']/g)].map((value) => value[1] ?? "").filter(Boolean);
+  return [...match[1].matchAll(/["']([^"']+)["']/g)]
+    .map((value) => value[1] ?? "")
+    .filter(Boolean);
 }
 
 function workspaceMembers(
@@ -224,6 +226,12 @@ function workspaceMembers(
     .sort((a, b) => a.localeCompare(b));
 }
 
+function isWorkspaceDescriptor(name: string): boolean {
+  return name === "package.json"
+    || name === "pnpm-workspace.yaml"
+    || name === "Cargo.toml";
+}
+
 export function discoverWorkspaces(
   files: readonly RepositoryEvidenceFile[],
   candidates: readonly IntermediateCandidate[],
@@ -233,15 +241,14 @@ export function discoverWorkspaces(
 
   for (const file of files) {
     const name = posix.basename(file.path);
+    if (!isWorkspaceDescriptor(name)) continue;
     if (statSync(file.absolute).size > 1_000_000) continue;
     const text = readFileSync(file.absolute, "utf8");
     const rootPath = posix.dirname(file.path);
 
     if (name === "package.json") {
       try {
-        const value = JSON.parse(text) as {
-          workspaces?: unknown;
-        };
+        const value = JSON.parse(text) as { workspaces?: unknown };
         const raw = Array.isArray(value.workspaces)
           ? value.workspaces
           : value.workspaces && typeof value.workspaces === "object"
@@ -285,8 +292,8 @@ export function discoverWorkspaces(
     }
 
     if (name === "Cargo.toml" && /^\s*\[workspace\]\s*$/m.test(text)) {
-      const section = /\[workspace\]([\s\S]*?)(?=\n\s*\[|$)/m.exec(text)?.[1] ?? "";
-      const patterns = parseQuotedArray(section, "members");
+      const workspaceSection = /\[workspace\]([\s\S]*?)(?=\n\s*\[|$)/m.exec(text)?.[1] ?? "";
+      const patterns = parseQuotedArray(workspaceSection, "members");
       if (patterns.length) {
         workspaces.push({
           kind: "cargo",
@@ -336,6 +343,17 @@ export function refineCandidatesWithWorkspaces(
   });
 }
 
+function extractGoImports(text: string, add: (value: string | undefined) => void): void {
+  for (const match of text.matchAll(/^\s*import\s+(?:[._A-Za-z][\w.]*\s+)?["`]([^"`\n]+)["`]/gm)) {
+    add(match[1]);
+  }
+  for (const block of text.matchAll(/^\s*import\s*\(([\s\S]*?)^\s*\)/gm)) {
+    for (const match of (block[1] ?? "").matchAll(/^\s*(?:[._A-Za-z][\w.]*\s+)?["`]([^"`\n]+)["`]/gm)) {
+      add(match[1]);
+    }
+  }
+}
+
 function extractSpecifiers(file: RepositoryEvidenceFile): string[] {
   if (!file.language || file.generated || statSync(file.absolute).size > 512_000) return [];
   const text = readFileSync(file.absolute, "utf8");
@@ -353,7 +371,7 @@ function extractSpecifiers(file: RepositoryEvidenceFile): string[] {
       for (const part of (match[1] ?? "").split(",")) add(part.trim().split(/\s+as\s+/)[0]);
     }
   } else if (file.language === "go") {
-    for (const match of text.matchAll(/["`]([^"`\n]+)["`]/g)) add(match[1]);
+    extractGoImports(text, add);
   } else if (file.language === "rust") {
     for (const match of text.matchAll(/^\s*use\s+([A-Za-z_][\w:]*)/gm)) add(match[1]);
   } else if (file.language === "gdscript") {
@@ -390,6 +408,20 @@ const RESOLUTION_EXTENSIONS = [
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".rs", ".go", ".gd", ".java", ".kt", ".cs",
 ];
 
+function resolutionCandidates(target: string): string[] {
+  const candidates = [target];
+  const extension = extname(target);
+  if (!extension) {
+    for (const value of RESOLUTION_EXTENSIONS) candidates.push(`${target}${value}`);
+    for (const value of RESOLUTION_EXTENSIONS) candidates.push(`${target}/index${value}`);
+    candidates.push(`${target}/__init__.py`);
+  } else if ([".js", ".mjs", ".cjs"].includes(extension)) {
+    const stem = target.slice(0, -extension.length);
+    candidates.push(`${stem}.ts`, `${stem}.tsx`);
+  }
+  return candidates;
+}
+
 function resolveRelativeTarget(
   file: RepositoryEvidenceFile,
   specifier: string,
@@ -410,14 +442,7 @@ function resolveRelativeTarget(
     }
   }
   if (!target) return undefined;
-
-  const candidates = [target];
-  if (!extname(target)) {
-    for (const extension of RESOLUTION_EXTENSIONS) candidates.push(`${target}${extension}`);
-    for (const extension of RESOLUTION_EXTENSIONS) candidates.push(`${target}/index${extension}`);
-    candidates.push(`${target}/__init__.py`);
-  }
-  return candidates.find((candidate) => knownFiles.has(candidate));
+  return resolutionCandidates(target).find((candidate) => knownFiles.has(candidate));
 }
 
 function workspaceTarget(
@@ -434,6 +459,12 @@ function workspaceTarget(
   );
   if (!marker) return undefined;
   return candidates.find((candidate) => candidate.path === marker.boundaryPath);
+}
+
+function isLocalLookingSpecifier(file: RepositoryEvidenceFile, specifier: string): boolean {
+  return specifier.startsWith(".")
+    || specifier.startsWith("res://")
+    || (file.language === "rust" && /^(?:crate|self|super)::/.test(specifier));
 }
 
 export function discoverStaticDependencies(
@@ -473,7 +504,7 @@ export function discoverStaticDependencies(
         scope = "workspace";
         to = workspace.id;
         targetKind = "candidate";
-      } else if (specifier.startsWith(".") || specifier.startsWith("res://")) {
+      } else if (isLocalLookingSpecifier(file, specifier)) {
         scope = "unresolved";
         to = `unresolved:${specifier}`;
         targetKind = "unresolved";
@@ -534,6 +565,9 @@ export function discoverStaticDependencies(
 }
 
 export function generatedSummary(files: readonly RepositoryEvidenceFile[]): RepositoryGeneratedSummary {
-  const paths = files.filter((file) => file.generated).map((file) => file.path).sort((a, b) => a.localeCompare(b));
+  const paths = files
+    .filter((file) => file.generated)
+    .map((file) => file.path)
+    .sort((a, b) => a.localeCompare(b));
   return { files: paths.length, paths };
 }
