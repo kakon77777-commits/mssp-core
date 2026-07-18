@@ -56,6 +56,12 @@ export const validateGitDiffImpactSchema: ValidateFunction = ajv.compile(
 export const validateVisualizationSchema: ValidateFunction = ajv.compile(
   readSchema("visualization.schema.json"),
 );
+export const validateRouterRequestSchema: ValidateFunction = ajv.compile(
+  readSchema("router-request.schema.json"),
+);
+export const validateRouterEvaluationSchema: ValidateFunction = ajv.compile(
+  readSchema("router-evaluation.schema.json"),
+);
 export const validateAdapterDescriptorSchema: ValidateFunction = ajv.compile(
   readSchema("adapter-descriptor.schema.json"),
 );
