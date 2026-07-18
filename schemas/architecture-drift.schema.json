@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/mssp/0.2/architecture-drift.schema.json",
+  "title": "MSSP Architecture Drift Report v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "generatedBy",
+    "sourceModel",
+    "analysis",
+    "coverage",
+    "summary",
+    "findings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.2" },
+    "kind": { "const": "mssp-architecture-drift-report" },
+    "generatedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "adapter"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "adapter": { "const": "architecture-drift-analyzer" }
+      }
+    },
+    "sourceModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectId",
+        "projectName",
+        "projectVersion",
+        "maxFiles",
+        "examinedFiles",
+        "sourceFiles",
+        "generatedSourceFilesExcluded",
+        "truncated"
+      ],
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "projectName": { "type": "string", "minLength": 1 },
+        "projectVersion": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "maxFiles": { "type": "integer", "minimum": 1 },
+        "examinedFiles": { "type": "integer", "minimum": 0 },
+        "sourceFiles": { "type": "integer", "minimum": 0 },
+        "generatedSourceFilesExcluded": { "type": "integer", "minimum": 0 },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "semanticEquivalence", "autoMutation"],
+      "properties": {
+        "mode": { "const": "static-conservative" },
+        "semanticEquivalence": { "const": false },
+        "autoMutation": { "const": false }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalFmsDocuments",
+        "canonicalFmsDocumentsFound",
+        "moduleIndexParsed",
+        "declaredModules",
+        "indexedModules",
+        "executableLayerSourceFiles"
+      ],
+      "properties": {
+        "canonicalFmsDocuments": { "type": "integer", "minimum": 0 },
+        "canonicalFmsDocumentsFound": { "type": "integer", "minimum": 0 },
+        "moduleIndexParsed": { "type": "boolean" },
+        "declaredModules": { "type": "integer", "minimum": 0 },
+        "indexedModules": { "type": "integer", "minimum": 0 },
+        "executableLayerSourceFiles": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "ok",
+        "errors",
+        "warnings",
+        "info",
+        "drift",
+        "indeterminate",
+        "total"
+      ],
+      "properties": {
+        "status": {
+          "enum": ["consistent", "drift-detected", "indeterminate"]
+        },
+        "ok": { "type": "boolean" },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 },
+        "drift": { "type": "integer", "minimum": 0 },
+        "indeterminate": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "message"],
+      "properties": {
+        "kind": {
+          "enum": ["declaration", "fms", "source", "scan"]
+        },
+        "message": { "type": "string", "minLength": 1 },
+        "uri": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "data": { "type": "object" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "status",
+        "category",
+        "message",
+        "declared",
+        "observed",
+        "suggestedActions"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^MSSP_DRIFT_[0-9]{3}$"
+        },
+        "severity": {
+          "enum": ["error", "warning", "info"]
+        },
+        "status": {
+          "enum": ["drift", "indeterminate"]
+        },
+        "category": {
+          "enum": [
+            "fms-presence",
+            "module-index",
+            "layer-boundary",
+            "source-ownership",
+            "scan-completeness"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1 },
+        "moduleId": { "type": "string", "minLength": 1 },
+        "layer": {
+          "enum": ["FMS", "SCL", "SMS", "TMS", "DMS", "ROUTER", "RUNTIME"]
+        },
+        "path": { "type": "string", "minLength": 1 },
+        "declared": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "observed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "suggestedActions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}
